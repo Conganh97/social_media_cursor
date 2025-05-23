@@ -1,0 +1,204 @@
+package com.socialmedia.modules.post.service.impl;
+
+import com.socialmedia.modules.post.dto.PostRequest;
+import com.socialmedia.modules.post.dto.PostResponse;
+import com.socialmedia.modules.post.dto.PostSummaryResponse;
+import com.socialmedia.modules.post.exception.PostNotFoundException;
+import com.socialmedia.modules.post.exception.UnauthorizedPostAccessException;
+import com.socialmedia.modules.post.service.PostService;
+import com.socialmedia.modules.user.dto.UserSummaryResponse;
+import com.socialmedia.entity.Post;
+import com.socialmedia.entity.User;
+import com.socialmedia.repository.PostRepository;
+import com.socialmedia.repository.LikeRepository;
+import com.socialmedia.repository.CommentRepository;
+import com.socialmedia.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional
+public class PostServiceImpl implements PostService {
+
+    @Autowired
+    private PostRepository postRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private LikeRepository likeRepository;
+
+    @Autowired
+    private CommentRepository commentRepository;
+
+    @Override
+    public PostResponse createPost(PostRequest postRequest, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        Post post = new Post();
+        post.setContent(postRequest.getContent());
+        post.setImageUrl(postRequest.getImageUrl());
+        post.setUser(user);
+        post.setCreatedAt(LocalDateTime.now());
+        post.setUpdatedAt(LocalDateTime.now());
+
+        Post savedPost = postRepository.save(post);
+        return convertToPostResponse(savedPost, userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PostResponse getPostById(Long postId) {
+        Post post = getPostEntityById(postId);
+        return convertToPostResponse(post, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PostResponse getPostById(Long postId, Long currentUserId) {
+        Post post = getPostEntityById(postId);
+        return convertToPostResponse(post, currentUserId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Post getPostEntityById(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException(postId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getFeedPosts(Long userId, Pageable pageable) {
+        Page<Post> posts = postRepository.findAllPostsOrderedByCreatedAt(pageable);
+        return posts.map(post -> convertToPostResponse(post, userId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getUserPosts(Long userId, Pageable pageable) {
+        Page<Post> posts = postRepository.findPostsByUserIdOrderedByCreatedAt(userId, pageable);
+        return posts.map(post -> convertToPostResponse(post, null));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getUserPosts(Long userId, Long currentUserId, Pageable pageable) {
+        Page<Post> posts = postRepository.findPostsByUserIdOrderedByCreatedAt(userId, pageable);
+        return posts.map(post -> convertToPostResponse(post, currentUserId));
+    }
+
+    @Override
+    public PostResponse updatePost(Long postId, PostRequest postRequest, Long userId) {
+        Post post = getPostEntityById(postId);
+        
+        if (!post.getUser().getId().equals(userId)) {
+            throw new UnauthorizedPostAccessException(postId, userId);
+        }
+
+        post.setContent(postRequest.getContent());
+        if (postRequest.getImageUrl() != null) {
+            post.setImageUrl(postRequest.getImageUrl());
+        }
+        post.setUpdatedAt(LocalDateTime.now());
+
+        Post updatedPost = postRepository.save(post);
+        return convertToPostResponse(updatedPost, userId);
+    }
+
+    @Override
+    public boolean deletePost(Long postId, Long userId) {
+        try {
+            Post post = getPostEntityById(postId);
+            
+            if (!post.getUser().getId().equals(userId)) {
+                throw new UnauthorizedPostAccessException(postId, userId);
+            }
+
+            postRepository.delete(post);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PostSummaryResponse> getRecentPosts(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        Page<Post> posts = postRepository.findAllPostsOrderedByCreatedAt(pageable);
+        
+        return posts.getContent().stream()
+                .map(this::convertToPostSummaryResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getPostCountByUserId(Long userId) {
+        return postRepository.countByUserId(userId);
+    }
+
+    private PostResponse convertToPostResponse(Post post, Long currentUserId) {
+        UserSummaryResponse userSummary = new UserSummaryResponse(
+                post.getUser().getId(),
+                post.getUser().getUsername(),
+                post.getUser().getFirstName(),
+                post.getUser().getLastName(),
+                post.getUser().getProfileImageUrl()
+        );
+
+        Long likeCount = likeRepository.countByPostId(post.getId());
+        Long commentCount = commentRepository.countByPostId(post.getId());
+        Boolean isLikedByCurrentUser = false;
+
+        if (currentUserId != null) {
+            isLikedByCurrentUser = likeRepository.existsByPostIdAndUserId(post.getId(), currentUserId);
+        }
+
+        PostResponse response = new PostResponse();
+        response.setId(post.getId());
+        response.setContent(post.getContent());
+        response.setImageUrl(post.getImageUrl());
+        response.setCreatedAt(post.getCreatedAt());
+        response.setUpdatedAt(post.getUpdatedAt());
+        response.setUser(userSummary);
+        response.setLikeCount(likeCount);
+        response.setCommentCount(commentCount);
+        response.setIsLikedByCurrentUser(isLikedByCurrentUser);
+
+        return response;
+    }
+
+    private PostSummaryResponse convertToPostSummaryResponse(Post post) {
+        UserSummaryResponse userSummary = new UserSummaryResponse(
+                post.getUser().getId(),
+                post.getUser().getUsername(),
+                post.getUser().getFirstName(),
+                post.getUser().getLastName(),
+                post.getUser().getProfileImageUrl()
+        );
+
+        return new PostSummaryResponse(
+                post.getId(),
+                post.getContent().length() > 100 ? 
+                    post.getContent().substring(0, 100) + "..." : post.getContent(),
+                post.getImageUrl(),
+                post.getCreatedAt(),
+                userSummary.getUsername(),
+                userSummary.getProfileImageUrl(),
+                likeRepository.countByPostId(post.getId()),
+                commentRepository.countByPostId(post.getId())
+        );
+    }
+} 
