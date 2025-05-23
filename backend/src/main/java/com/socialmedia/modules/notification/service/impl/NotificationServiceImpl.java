@@ -1,15 +1,16 @@
 package com.socialmedia.modules.notification.service.impl;
 
-import com.socialmedia.entity.Notification;
-import com.socialmedia.entity.User;
+import com.socialmedia.modules.notification.entity.Notification;
+import com.socialmedia.modules.user.entity.User;
 import com.socialmedia.modules.notification.dto.NotificationResponse;
 import com.socialmedia.modules.notification.dto.NotificationSummary;
-import com.socialmedia.modules.notification.exception.NotificationNotFoundException;
-import com.socialmedia.modules.notification.exception.UnauthorizedNotificationAccessException;
+import com.socialmedia.shared.exception.exceptions.NotificationNotFoundException;
+import com.socialmedia.shared.exception.exceptions.UnauthorizedNotificationAccessException;
 import com.socialmedia.modules.notification.service.NotificationService;
 import com.socialmedia.modules.user.dto.UserSummaryResponse;
-import com.socialmedia.repository.NotificationRepository;
-import com.socialmedia.repository.UserRepository;
+import com.socialmedia.shared.exception.exceptions.UserNotFoundException;
+import com.socialmedia.modules.notification.repository.NotificationRepository;
+import com.socialmedia.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,7 +34,7 @@ public class NotificationServiceImpl implements NotificationService {
         log.info("Creating notification for user ID: {} with type: {}", userId, type);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         Notification notification = new Notification(user, type, content, relatedId);
         notification = notificationRepository.save(notification);

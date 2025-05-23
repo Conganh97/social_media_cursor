@@ -1,10 +1,8 @@
 package com.socialmedia.modules.notification.controller;
 
-import com.socialmedia.entity.Notification;
+import com.socialmedia.modules.notification.entity.Notification;
 import com.socialmedia.modules.notification.dto.NotificationResponse;
 import com.socialmedia.modules.notification.dto.NotificationSummary;
-import com.socialmedia.modules.notification.exception.NotificationNotFoundException;
-import com.socialmedia.modules.notification.exception.UnauthorizedNotificationAccessException;
 import com.socialmedia.modules.notification.service.NotificationService;
 import com.socialmedia.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -33,16 +31,11 @@ public class NotificationController {
             @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<NotificationResponse> notifications = notificationService.getUserNotifications(currentUser.getId(), pageable);
-            
-            log.info("Retrieved {} notifications for user ID: {}", notifications.getContent().size(), currentUser.getId());
-            return ResponseEntity.ok(notifications);
-        } catch (Exception e) {
-            log.error("Error retrieving notifications for user ID: {}", currentUser.getId(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Pageable pageable = PageRequest.of(page, size);
+        Page<NotificationResponse> notifications = notificationService.getUserNotifications(currentUser.getId(), pageable);
+        
+        log.info("Retrieved {} notifications for user ID: {}", notifications.getContent().size(), currentUser.getId());
+        return ResponseEntity.ok(notifications);
     }
 
     @GetMapping("/unread")
@@ -50,16 +43,11 @@ public class NotificationController {
             @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<NotificationResponse> notifications = notificationService.getUnreadNotifications(currentUser.getId(), pageable);
-            
-            log.info("Retrieved {} unread notifications for user ID: {}", notifications.getContent().size(), currentUser.getId());
-            return ResponseEntity.ok(notifications);
-        } catch (Exception e) {
-            log.error("Error retrieving unread notifications for user ID: {}", currentUser.getId(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Pageable pageable = PageRequest.of(page, size);
+        Page<NotificationResponse> notifications = notificationService.getUnreadNotifications(currentUser.getId(), pageable);
+        
+        log.info("Retrieved {} unread notifications for user ID: {}", notifications.getContent().size(), currentUser.getId());
+        return ResponseEntity.ok(notifications);
     }
 
     @GetMapping("/type/{type}")
@@ -68,175 +56,85 @@ public class NotificationController {
             @PathVariable String type,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        try {
-            Notification.NotificationType notificationType = Notification.NotificationType.valueOf(type.toUpperCase());
-            Pageable pageable = PageRequest.of(page, size);
-            Page<NotificationResponse> notifications = notificationService.getNotificationsByType(
-                    currentUser.getId(), notificationType, pageable);
-            
-            log.info("Retrieved {} notifications of type {} for user ID: {}", 
-                    notifications.getContent().size(), type, currentUser.getId());
-            return ResponseEntity.ok(notifications);
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid notification type: {}", type);
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("Error retrieving notifications by type for user ID: {}", currentUser.getId(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Notification.NotificationType notificationType = Notification.NotificationType.valueOf(type.toUpperCase());
+        Pageable pageable = PageRequest.of(page, size);
+        Page<NotificationResponse> notifications = notificationService.getNotificationsByType(
+                currentUser.getId(), notificationType, pageable);
+        
+        log.info("Retrieved {} notifications of type {} for user ID: {}", 
+                notifications.getContent().size(), type, currentUser.getId());
+        return ResponseEntity.ok(notifications);
     }
 
     @GetMapping("/{notificationId}")
-    public ResponseEntity<?> getNotificationById(
+    public ResponseEntity<NotificationResponse> getNotificationById(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long notificationId) {
-        try {
-            NotificationResponse notification = notificationService.getNotificationById(notificationId, currentUser.getId());
-            return ResponseEntity.ok(notification);
-        } catch (NotificationNotFoundException e) {
-            log.error("Notification not found: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(createErrorResponse("Notification not found", e.getMessage()));
-        } catch (UnauthorizedNotificationAccessException e) {
-            log.error("Unauthorized access to notification: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(createErrorResponse("Access denied", e.getMessage()));
-        } catch (Exception e) {
-            log.error("Error retrieving notification ID: {}", notificationId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("Internal server error", "An unexpected error occurred"));
-        }
+        NotificationResponse notification = notificationService.getNotificationById(notificationId, currentUser.getId());
+        return ResponseEntity.ok(notification);
     }
 
     @PutMapping("/{notificationId}/read")
-    public ResponseEntity<?> markAsRead(
+    public ResponseEntity<NotificationResponse> markAsRead(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long notificationId) {
-        try {
-            NotificationResponse notification = notificationService.markAsRead(notificationId, currentUser.getId());
-            
-            log.info("Notification ID: {} marked as read by user ID: {}", notificationId, currentUser.getId());
-            return ResponseEntity.ok(notification);
-        } catch (NotificationNotFoundException e) {
-            log.error("Notification not found: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(createErrorResponse("Notification not found", e.getMessage()));
-        } catch (UnauthorizedNotificationAccessException e) {
-            log.error("Unauthorized access to notification: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(createErrorResponse("Access denied", e.getMessage()));
-        } catch (Exception e) {
-            log.error("Error marking notification as read ID: {}", notificationId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("Internal server error", "An unexpected error occurred"));
-        }
+        NotificationResponse notification = notificationService.markAsRead(notificationId, currentUser.getId());
+        
+        log.info("Notification ID: {} marked as read by user ID: {}", notificationId, currentUser.getId());
+        return ResponseEntity.ok(notification);
     }
 
     @PutMapping("/read-all")
-    public ResponseEntity<?> markAllAsRead(@AuthenticationPrincipal UserPrincipal currentUser) {
-        try {
-            notificationService.markAllAsRead(currentUser.getId());
-            
-            log.info("All notifications marked as read for user ID: {}", currentUser.getId());
-            return ResponseEntity.ok(createSuccessResponse("All notifications marked as read"));
-        } catch (Exception e) {
-            log.error("Error marking all notifications as read for user ID: {}", currentUser.getId(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("Internal server error", "An unexpected error occurred"));
-        }
+    public ResponseEntity<Map<String, String>> markAllAsRead(@AuthenticationPrincipal UserPrincipal currentUser) {
+        notificationService.markAllAsRead(currentUser.getId());
+        
+        log.info("All notifications marked as read for user ID: {}", currentUser.getId());
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "All notifications marked as read");
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/count/unread")
-    public ResponseEntity<?> getUnreadCount(@AuthenticationPrincipal UserPrincipal currentUser) {
-        try {
-            Long unreadCount = notificationService.getUnreadCount(currentUser.getId());
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("unreadCount", unreadCount);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error retrieving unread count for user ID: {}", currentUser.getId(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("Internal server error", "An unexpected error occurred"));
-        }
+    public ResponseEntity<Map<String, Long>> getUnreadCount(@AuthenticationPrincipal UserPrincipal currentUser) {
+        Long unreadCount = notificationService.getUnreadCount(currentUser.getId());
+        
+        Map<String, Long> response = new HashMap<>();
+        response.put("unreadCount", unreadCount);
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/summary")
-    public ResponseEntity<?> getNotificationSummary(@AuthenticationPrincipal UserPrincipal currentUser) {
-        try {
-            NotificationSummary summary = notificationService.getNotificationSummary(currentUser.getId());
-            
-            log.info("Retrieved notification summary for user ID: {}", currentUser.getId());
-            return ResponseEntity.ok(summary);
-        } catch (Exception e) {
-            log.error("Error retrieving notification summary for user ID: {}", currentUser.getId(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("Internal server error", "An unexpected error occurred"));
-        }
+    public ResponseEntity<NotificationSummary> getNotificationSummary(@AuthenticationPrincipal UserPrincipal currentUser) {
+        NotificationSummary summary = notificationService.getNotificationSummary(currentUser.getId());
+        
+        log.info("Retrieved notification summary for user ID: {}", currentUser.getId());
+        return ResponseEntity.ok(summary);
     }
 
     @DeleteMapping("/{notificationId}")
-    public ResponseEntity<?> deleteNotification(
+    public ResponseEntity<Map<String, String>> deleteNotification(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long notificationId) {
-        try {
-            notificationService.deleteNotification(notificationId, currentUser.getId());
-            
-            log.info("Notification ID: {} deleted by user ID: {}", notificationId, currentUser.getId());
-            return ResponseEntity.ok(createSuccessResponse("Notification deleted successfully"));
-        } catch (NotificationNotFoundException e) {
-            log.error("Notification not found: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(createErrorResponse("Notification not found", e.getMessage()));
-        } catch (UnauthorizedNotificationAccessException e) {
-            log.error("Unauthorized access to notification: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(createErrorResponse("Access denied", e.getMessage()));
-        } catch (Exception e) {
-            log.error("Error deleting notification ID: {}", notificationId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("Internal server error", "An unexpected error occurred"));
-        }
+        notificationService.deleteNotification(notificationId, currentUser.getId());
+        
+        log.info("Notification ID: {} deleted by user ID: {}", notificationId, currentUser.getId());
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Notification deleted successfully");
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/test")
-    public ResponseEntity<?> createTestNotification(
+    public ResponseEntity<NotificationResponse> createTestNotification(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestParam(defaultValue = "LIKE") String type,
             @RequestParam(defaultValue = "Test notification content") String content,
             @RequestParam(required = false) Long relatedId) {
-        try {
-            Notification.NotificationType notificationType = Notification.NotificationType.valueOf(type.toUpperCase());
-            NotificationResponse notification = notificationService.createNotification(
-                    currentUser.getId(), notificationType, content, relatedId);
-            
-            log.info("Test notification created for user ID: {}", currentUser.getId());
-            return ResponseEntity.status(HttpStatus.CREATED).body(notification);
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid notification type: {}", type);
-            return ResponseEntity.badRequest()
-                    .body(createErrorResponse("Invalid type", "Invalid notification type: " + type));
-        } catch (Exception e) {
-            log.error("Error creating test notification for user ID: {}", currentUser.getId(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("Internal server error", "An unexpected error occurred"));
-        }
-    }
-
-    private Map<String, Object> createErrorResponse(String error, String message) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("error", error);
-        response.put("message", message);
-        response.put("timestamp", System.currentTimeMillis());
-        return response;
-    }
-
-    private Map<String, Object> createSuccessResponse(String message) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", message);
-        response.put("timestamp", System.currentTimeMillis());
-        return response;
+        Notification.NotificationType notificationType = Notification.NotificationType.valueOf(type.toUpperCase());
+        NotificationResponse notification = notificationService.createNotification(
+                currentUser.getId(), notificationType, content, relatedId);
+        
+        log.info("Test notification created for user ID: {}", currentUser.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(notification);
     }
 } 

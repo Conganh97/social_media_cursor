@@ -5,8 +5,11 @@ import com.socialmedia.modules.auth.dto.LoginRequest;
 import com.socialmedia.modules.auth.dto.RegisterRequest;
 import com.socialmedia.modules.auth.service.AuthService;
 import com.socialmedia.modules.user.service.UserService;
-import com.socialmedia.entity.User;
+import com.socialmedia.modules.user.entity.User;
 import com.socialmedia.security.JwtTokenProvider;
+import com.socialmedia.shared.exception.enums.ErrorCode;
+import com.socialmedia.shared.exception.exceptions.AuthenticationException;
+import com.socialmedia.shared.exception.exceptions.BusinessLogicException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -61,9 +63,9 @@ public class AuthServiceImpl implements AuthService {
             logger.info("User {} authenticated successfully", user.getUsername());
             return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail(), refreshToken);
 
-        } catch (AuthenticationException e) {
+        } catch (org.springframework.security.core.AuthenticationException e) {
             logger.error("Authentication failed for user: {}", loginRequest.getUsernameOrEmail());
-            throw new RuntimeException("Invalid credentials", e);
+            throw new AuthenticationException(ErrorCode.INVALID_CREDENTIALS, "Invalid username or password");
         }
     }
 
@@ -95,11 +97,11 @@ public class AuthServiceImpl implements AuthService {
     public JwtResponse refreshToken(String refreshToken) {
         try {
             if (!jwtTokenProvider.validateToken(refreshToken)) {
-                throw new RuntimeException("Invalid refresh token");
+                throw new AuthenticationException(ErrorCode.INVALID_TOKEN, "Invalid refresh token");
             }
 
             if (blacklistedTokens.contains(refreshToken)) {
-                throw new RuntimeException("Refresh token has been revoked");
+                throw new AuthenticationException(ErrorCode.TOKEN_BLACKLISTED, "Refresh token has been revoked");
             }
 
             String username = jwtTokenProvider.getUsernameFromToken(refreshToken);
@@ -118,9 +120,11 @@ public class AuthServiceImpl implements AuthService {
             return new JwtResponse(newAccessToken, user.getId(), user.getUsername(), 
                                  user.getEmail(), newRefreshToken);
 
+        } catch (AuthenticationException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Token refresh failed", e);
-            throw new RuntimeException("Token refresh failed", e);
+            throw new BusinessLogicException(ErrorCode.INTERNAL_SERVER_ERROR, "Token refresh failed");
         }
     }
 

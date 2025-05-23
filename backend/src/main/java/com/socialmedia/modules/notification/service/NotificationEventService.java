@@ -1,7 +1,6 @@
 package com.socialmedia.modules.notification.service;
 
-import com.socialmedia.entity.Notification;
-import com.socialmedia.modules.notification.dto.NotificationResponse;
+import com.socialmedia.modules.notification.entity.Notification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

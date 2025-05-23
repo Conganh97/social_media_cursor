@@ -2,15 +2,16 @@ package com.socialmedia.modules.social.service.impl;
 
 import com.socialmedia.modules.social.dto.FriendshipRequest;
 import com.socialmedia.modules.social.dto.FriendshipResponse;
-import com.socialmedia.modules.social.exception.FriendshipNotFoundException;
-import com.socialmedia.modules.social.exception.InvalidFriendshipStatusException;
-import com.socialmedia.modules.social.exception.UnauthorizedSocialActionException;
+import com.socialmedia.shared.exception.exceptions.FriendshipNotFoundException;
+import com.socialmedia.shared.exception.exceptions.InvalidFriendshipStatusException;
+import com.socialmedia.shared.exception.exceptions.UnauthorizedSocialActionException;
 import com.socialmedia.modules.social.service.FriendshipService;
 import com.socialmedia.modules.user.dto.UserSummaryResponse;
-import com.socialmedia.entity.Friendship;
-import com.socialmedia.entity.User;
-import com.socialmedia.repository.FriendshipRepository;
-import com.socialmedia.repository.UserRepository;
+import com.socialmedia.modules.social.entity.Friendship;
+import com.socialmedia.modules.user.entity.User;
+import com.socialmedia.shared.exception.exceptions.UserNotFoundException;
+import com.socialmedia.modules.social.repository.FriendshipRepository;
+import com.socialmedia.modules.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,19 +34,18 @@ public class FriendshipServiceImpl implements FriendshipService {
     @Override
     public FriendshipResponse sendFriendRequest(FriendshipRequest friendshipRequest, Long requesterId) {
         if (requesterId.equals(friendshipRequest.getAddresseeId())) {
-            throw new IllegalArgumentException("Cannot send friend request to yourself");
+            throw InvalidFriendshipStatusException.cannotBefriendSelf();
         }
 
         User requester = userRepository.findById(requesterId)
-                .orElseThrow(() -> new RuntimeException("Requester not found with id: " + requesterId));
+                .orElseThrow(() -> new UserNotFoundException(requesterId));
 
         User addressee = userRepository.findById(friendshipRequest.getAddresseeId())
-                .orElseThrow(() -> new RuntimeException("Addressee not found with id: " + friendshipRequest.getAddresseeId()));
+                .orElseThrow(() -> new UserNotFoundException(friendshipRequest.getAddresseeId()));
 
-        // Check if friendship already exists
         Optional<Friendship> existingFriendship = friendshipRepository.findFriendshipBetweenUsers(requesterId, friendshipRequest.getAddresseeId());
         if (existingFriendship.isPresent()) {
-            throw new IllegalArgumentException("Friendship request already exists between these users");
+            throw InvalidFriendshipStatusException.duplicateRequest();
         }
 
         Friendship friendship = new Friendship(requester, addressee);
@@ -58,11 +58,11 @@ public class FriendshipServiceImpl implements FriendshipService {
         Friendship friendship = getFriendshipEntityById(friendshipId);
 
         if (!friendship.getAddressee().getId().equals(userId)) {
-            throw new UnauthorizedSocialActionException("accept friend request", userId);
+            throw UnauthorizedSocialActionException.forFriendship(userId, friendship.getRequester().getId());
         }
 
         if (friendship.getStatus() != Friendship.FriendshipStatus.PENDING) {
-            throw new InvalidFriendshipStatusException(friendship.getStatus().toString(), "accept");
+            throw new InvalidFriendshipStatusException(friendship.getStatus().toString(), "ACCEPTED");
         }
 
         friendship.setStatus(Friendship.FriendshipStatus.ACCEPTED);
@@ -75,11 +75,11 @@ public class FriendshipServiceImpl implements FriendshipService {
         Friendship friendship = getFriendshipEntityById(friendshipId);
 
         if (!friendship.getAddressee().getId().equals(userId)) {
-            throw new UnauthorizedSocialActionException("reject friend request", userId);
+            throw UnauthorizedSocialActionException.forFriendship(userId, friendship.getRequester().getId());
         }
 
         if (friendship.getStatus() != Friendship.FriendshipStatus.PENDING) {
-            throw new InvalidFriendshipStatusException(friendship.getStatus().toString(), "reject");
+            throw new InvalidFriendshipStatusException(friendship.getStatus().toString(), "DECLINED");
         }
 
         friendship.setStatus(Friendship.FriendshipStatus.DECLINED);
@@ -89,33 +89,25 @@ public class FriendshipServiceImpl implements FriendshipService {
 
     @Override
     public boolean removeFriend(Long friendshipId, Long userId) {
-        try {
-            Friendship friendship = getFriendshipEntityById(friendshipId);
+        Friendship friendship = getFriendshipEntityById(friendshipId);
 
-            // Only the participants can remove the friendship
-            if (!friendship.getRequester().getId().equals(userId) && !friendship.getAddressee().getId().equals(userId)) {
-                throw new UnauthorizedSocialActionException("remove friend", userId);
-            }
-
-            friendshipRepository.delete(friendship);
-            return true;
-        } catch (Exception e) {
-            return false;
+        if (!friendship.getRequester().getId().equals(userId) && !friendship.getAddressee().getId().equals(userId)) {
+            throw UnauthorizedSocialActionException.forFriendship(userId, 
+                friendship.getRequester().getId().equals(userId) ? friendship.getAddressee().getId() : friendship.getRequester().getId());
         }
+
+        friendshipRepository.delete(friendship);
+        return true;
     }
 
     @Override
     public boolean unfriend(Long friendId, Long userId) {
-        try {
-            Optional<Friendship> friendship = friendshipRepository.findFriendshipBetweenUsers(userId, friendId);
-            if (friendship.isPresent() && friendship.get().getStatus() == Friendship.FriendshipStatus.ACCEPTED) {
-                friendshipRepository.delete(friendship.get());
-                return true;
-            }
-            return false;
-        } catch (Exception e) {
-            return false;
+        Optional<Friendship> friendship = friendshipRepository.findFriendshipBetweenUsers(userId, friendId);
+        if (friendship.isPresent() && friendship.get().getStatus() == Friendship.FriendshipStatus.ACCEPTED) {
+            friendshipRepository.delete(friendship.get());
+            return true;
         }
+        throw new FriendshipNotFoundException(userId, friendId);
     }
 
     @Override

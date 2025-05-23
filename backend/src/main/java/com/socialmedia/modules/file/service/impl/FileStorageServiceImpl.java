@@ -2,17 +2,16 @@ package com.socialmedia.modules.file.service.impl;
 
 import com.socialmedia.modules.file.config.FileStorageConfig;
 import com.socialmedia.modules.file.dto.FileUploadResponse;
-import com.socialmedia.modules.file.exception.FileStorageException;
-import com.socialmedia.modules.file.exception.InvalidFileException;
+import com.socialmedia.shared.exception.exceptions.FileStorageException;
+import com.socialmedia.shared.exception.exceptions.InvalidFileException;
 import com.socialmedia.modules.file.service.FileStorageService;
 import com.socialmedia.modules.file.service.ImageProcessingService;
-import com.socialmedia.repository.UserRepository;
+import com.socialmedia.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.annotation.PostConstruct;

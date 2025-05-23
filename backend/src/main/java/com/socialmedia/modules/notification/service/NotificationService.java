@@ -1,6 +1,6 @@
 package com.socialmedia.modules.notification.service;
 
-import com.socialmedia.entity.Notification;
+import com.socialmedia.modules.notification.entity.Notification;
 import com.socialmedia.modules.notification.dto.NotificationResponse;
 import com.socialmedia.modules.notification.dto.NotificationSummary;
 import org.springframework.data.domain.Page;

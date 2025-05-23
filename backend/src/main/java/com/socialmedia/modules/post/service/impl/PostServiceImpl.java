@@ -3,16 +3,17 @@ package com.socialmedia.modules.post.service.impl;
 import com.socialmedia.modules.post.dto.PostRequest;
 import com.socialmedia.modules.post.dto.PostResponse;
 import com.socialmedia.modules.post.dto.PostSummaryResponse;
-import com.socialmedia.modules.post.exception.PostNotFoundException;
-import com.socialmedia.modules.post.exception.UnauthorizedPostAccessException;
+import com.socialmedia.shared.exception.exceptions.PostNotFoundException;
+import com.socialmedia.shared.exception.exceptions.UnauthorizedPostAccessException;
 import com.socialmedia.modules.post.service.PostService;
 import com.socialmedia.modules.user.dto.UserSummaryResponse;
-import com.socialmedia.entity.Post;
-import com.socialmedia.entity.User;
-import com.socialmedia.repository.PostRepository;
-import com.socialmedia.repository.LikeRepository;
-import com.socialmedia.repository.CommentRepository;
-import com.socialmedia.repository.UserRepository;
+import com.socialmedia.shared.exception.exceptions.UserNotFoundException;
+import com.socialmedia.modules.post.entity.Post;
+import com.socialmedia.modules.user.entity.User;
+import com.socialmedia.modules.post.repository.PostRepository;
+import com.socialmedia.modules.social.repository.LikeRepository;
+import com.socialmedia.modules.social.repository.CommentRepository;
+import com.socialmedia.modules.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -43,7 +44,7 @@ public class PostServiceImpl implements PostService {
     @Override
     public PostResponse createPost(PostRequest postRequest, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         Post post = new Post();
         post.setContent(postRequest.getContent());
@@ -118,18 +119,14 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public boolean deletePost(Long postId, Long userId) {
-        try {
-            Post post = getPostEntityById(postId);
-            
-            if (!post.getUser().getId().equals(userId)) {
-                throw new UnauthorizedPostAccessException(postId, userId);
-            }
-
-            postRepository.delete(post);
-            return true;
-        } catch (Exception e) {
-            return false;
+        Post post = getPostEntityById(postId);
+        
+        if (!post.getUser().getId().equals(userId)) {
+            throw new UnauthorizedPostAccessException(postId, userId);
         }
+
+        postRepository.delete(post);
+        return true;
     }
 
     @Override

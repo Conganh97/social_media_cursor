@@ -24,178 +24,124 @@ public class LikeController {
     private LikeService likeService;
 
     @PostMapping("/post/{postId}")
-    public ResponseEntity<?> likePost(
+    public ResponseEntity<Map<String, Object>> likePost(
             @PathVariable Long postId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        try {
-            boolean liked = likeService.likePost(postId, userPrincipal.getId());
-            Map<String, Object> response = new HashMap<>();
-            
-            if (liked) {
-                response.put("message", "Post liked successfully");
-                response.put("liked", true);
-            } else {
-                response.put("message", "Post already liked");
-                response.put("liked", false);
-            }
-            
-            response.put("likeCount", likeService.getLikeCountByPostId(postId));
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to like post: " + e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+        boolean liked = likeService.likePost(postId, userPrincipal.getId());
+        Map<String, Object> response = new HashMap<>();
+        
+        if (liked) {
+            response.put("message", "Post liked successfully");
+            response.put("liked", true);
+        } else {
+            response.put("message", "Post already liked");
+            response.put("liked", false);
         }
+        
+        response.put("likeCount", likeService.getLikeCountByPostId(postId));
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/post/{postId}")
-    public ResponseEntity<?> unlikePost(
+    public ResponseEntity<Map<String, Object>> unlikePost(
             @PathVariable Long postId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        try {
-            boolean unliked = likeService.unlikePost(postId, userPrincipal.getId());
-            Map<String, Object> response = new HashMap<>();
-            
-            if (unliked) {
-                response.put("message", "Post unliked successfully");
-                response.put("unliked", true);
-            } else {
-                response.put("message", "Post was not liked");
-                response.put("unliked", false);
-            }
-            
-            response.put("likeCount", likeService.getLikeCountByPostId(postId));
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to unlike post: " + e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+        boolean unliked = likeService.unlikePost(postId, userPrincipal.getId());
+        Map<String, Object> response = new HashMap<>();
+        
+        if (unliked) {
+            response.put("message", "Post unliked successfully");
+            response.put("unliked", true);
+        } else {
+            response.put("message", "Post was not liked");
+            response.put("unliked", false);
         }
+        
+        response.put("likeCount", likeService.getLikeCountByPostId(postId));
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/post/{postId}/toggle")
-    public ResponseEntity<?> toggleLike(
+    public ResponseEntity<Map<String, Object>> toggleLike(
             @PathVariable Long postId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        try {
-            boolean isLiked = likeService.isPostLikedByUser(postId, userPrincipal.getId());
-            boolean result;
-            String action;
-            
-            if (isLiked) {
-                result = likeService.unlikePost(postId, userPrincipal.getId());
-                action = "unliked";
-            } else {
-                result = likeService.likePost(postId, userPrincipal.getId());
-                action = "liked";
-            }
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Post " + action + " successfully");
-            response.put("action", action);
-            response.put("success", result);
-            response.put("likeCount", likeService.getLikeCountByPostId(postId));
-            response.put("isLiked", !isLiked);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to toggle like: " + e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+        boolean isLiked = likeService.isPostLikedByUser(postId, userPrincipal.getId());
+        boolean result;
+        String action;
+        
+        if (isLiked) {
+            result = likeService.unlikePost(postId, userPrincipal.getId());
+            action = "unliked";
+        } else {
+            result = likeService.likePost(postId, userPrincipal.getId());
+            action = "liked";
         }
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Post " + action + " successfully");
+        response.put("action", action);
+        response.put("success", result);
+        response.put("likeCount", likeService.getLikeCountByPostId(postId));
+        response.put("isLiked", !isLiked);
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/post/{postId}/status")
-    public ResponseEntity<?> getLikeStatus(
+    public ResponseEntity<Map<String, Object>> getLikeStatus(
             @PathVariable Long postId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        try {
-            boolean isLiked = likeService.isPostLikedByUser(postId, userPrincipal.getId());
-            Long likeCount = likeService.getLikeCountByPostId(postId);
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("isLiked", isLiked);
-            response.put("likeCount", likeCount);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch like status: " + e.getMessage());
-            return ResponseEntity.badRequest().body(error);
-        }
+        boolean isLiked = likeService.isPostLikedByUser(postId, userPrincipal.getId());
+        Long likeCount = likeService.getLikeCountByPostId(postId);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("isLiked", isLiked);
+        response.put("likeCount", likeCount);
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/post/{postId}")
-    public ResponseEntity<?> getUsersWhoLikedPost(
+    public ResponseEntity<Page<UserSummaryResponse>> getUsersWhoLikedPost(
             @PathVariable Long postId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<UserSummaryResponse> users = likeService.getUsersWhoLikedPost(postId, pageable);
-            return ResponseEntity.ok(users);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch users who liked post: " + e.getMessage());
-            return ResponseEntity.badRequest().body(error);
-        }
+        Pageable pageable = PageRequest.of(page, size);
+        Page<UserSummaryResponse> users = likeService.getUsersWhoLikedPost(postId, pageable);
+        return ResponseEntity.ok(users);
     }
 
     @GetMapping("/user/{userId}/posts")
-    public ResponseEntity<?> getPostsLikedByUser(
+    public ResponseEntity<Page<Long>> getPostsLikedByUser(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Long> postIds = likeService.getPostsLikedByUser(userId, pageable);
-            return ResponseEntity.ok(postIds);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch liked posts: " + e.getMessage());
-            return ResponseEntity.badRequest().body(error);
-        }
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Long> postIds = likeService.getPostsLikedByUser(userId, pageable);
+        return ResponseEntity.ok(postIds);
     }
 
     @GetMapping("/post/{postId}/recent")
-    public ResponseEntity<?> getRecentLikersForPost(
+    public ResponseEntity<List<UserSummaryResponse>> getRecentLikersForPost(
             @PathVariable Long postId,
             @RequestParam(defaultValue = "5") int limit) {
-        try {
-            List<UserSummaryResponse> recentLikers = likeService.getRecentLikersForPost(postId, limit);
-            return ResponseEntity.ok(recentLikers);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch recent likers: " + e.getMessage());
-            return ResponseEntity.badRequest().body(error);
-        }
+        List<UserSummaryResponse> recentLikers = likeService.getRecentLikersForPost(postId, limit);
+        return ResponseEntity.ok(recentLikers);
     }
 
     @GetMapping("/count/post/{postId}")
-    public ResponseEntity<?> getLikeCountByPostId(@PathVariable Long postId) {
-        try {
-            Long likeCount = likeService.getLikeCountByPostId(postId);
-            Map<String, Long> response = new HashMap<>();
-            response.put("count", likeCount);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch like count: " + e.getMessage());
-            return ResponseEntity.badRequest().body(error);
-        }
+    public ResponseEntity<Map<String, Long>> getLikeCountByPostId(@PathVariable Long postId) {
+        Long likeCount = likeService.getLikeCountByPostId(postId);
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", likeCount);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/count/user/{userId}")
-    public ResponseEntity<?> getLikeCountByUserId(@PathVariable Long userId) {
-        try {
-            Long likeCount = likeService.getLikeCountByUserId(userId);
-            Map<String, Long> response = new HashMap<>();
-            response.put("count", likeCount);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch user like count: " + e.getMessage());
-            return ResponseEntity.badRequest().body(error);
-        }
+    public ResponseEntity<Map<String, Long>> getLikeCountByUserId(@PathVariable Long userId) {
+        Long likeCount = likeService.getLikeCountByUserId(userId);
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", likeCount);
+        return ResponseEntity.ok(response);
     }
 } 

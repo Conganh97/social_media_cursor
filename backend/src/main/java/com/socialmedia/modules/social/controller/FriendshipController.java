@@ -2,9 +2,6 @@ package com.socialmedia.modules.social.controller;
 
 import com.socialmedia.modules.social.dto.FriendshipRequest;
 import com.socialmedia.modules.social.dto.FriendshipResponse;
-import com.socialmedia.modules.social.exception.FriendshipNotFoundException;
-import com.socialmedia.modules.social.exception.InvalidFriendshipStatusException;
-import com.socialmedia.modules.social.exception.UnauthorizedSocialActionException;
 import com.socialmedia.modules.social.service.FriendshipService;
 import com.socialmedia.security.UserPrincipal;
 import jakarta.validation.Valid;
@@ -30,270 +27,154 @@ public class FriendshipController {
     private FriendshipService friendshipService;
 
     @PostMapping("/request")
-    public ResponseEntity<?> sendFriendRequest(
+    public ResponseEntity<FriendshipResponse> sendFriendRequest(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody FriendshipRequest friendshipRequest) {
-        try {
-            FriendshipResponse friendship = friendshipService.sendFriendRequest(friendshipRequest, userPrincipal.getId());
-            return ResponseEntity.status(HttpStatus.CREATED).body(friendship);
-        } catch (IllegalArgumentException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to send friend request: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        FriendshipResponse friendship = friendshipService.sendFriendRequest(friendshipRequest, userPrincipal.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(friendship);
     }
 
     @PutMapping("/{id}/accept")
-    public ResponseEntity<?> acceptFriendRequest(
+    public ResponseEntity<FriendshipResponse> acceptFriendRequest(
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        try {
-            FriendshipResponse friendship = friendshipService.acceptFriendRequest(id, userPrincipal.getId());
-            return ResponseEntity.ok(friendship);
-        } catch (FriendshipNotFoundException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-        } catch (UnauthorizedSocialActionException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-        } catch (InvalidFriendshipStatusException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-        }
+        FriendshipResponse friendship = friendshipService.acceptFriendRequest(id, userPrincipal.getId());
+        return ResponseEntity.ok(friendship);
     }
 
     @PutMapping("/{id}/reject")
-    public ResponseEntity<?> rejectFriendRequest(
+    public ResponseEntity<FriendshipResponse> rejectFriendRequest(
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        try {
-            FriendshipResponse friendship = friendshipService.rejectFriendRequest(id, userPrincipal.getId());
-            return ResponseEntity.ok(friendship);
-        } catch (FriendshipNotFoundException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-        } catch (UnauthorizedSocialActionException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-        } catch (InvalidFriendshipStatusException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-        }
+        FriendshipResponse friendship = friendshipService.rejectFriendRequest(id, userPrincipal.getId());
+        return ResponseEntity.ok(friendship);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> removeFriend(
+    public ResponseEntity<Map<String, String>> removeFriend(
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        try {
-            boolean removed = friendshipService.removeFriend(id, userPrincipal.getId());
-            if (removed) {
-                Map<String, String> response = new HashMap<>();
-                response.put("message", "Friendship removed successfully");
-                return ResponseEntity.ok(response);
-            } else {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", "Failed to remove friendship");
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-            }
-        } catch (FriendshipNotFoundException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-        } catch (UnauthorizedSocialActionException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+        boolean removed = friendshipService.removeFriend(id, userPrincipal.getId());
+        if (!removed) {
+            throw new RuntimeException("Failed to remove friendship");
         }
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Friendship removed successfully");
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/unfriend/{friendId}")
-    public ResponseEntity<?> unfriend(
+    public ResponseEntity<Map<String, String>> unfriend(
             @PathVariable Long friendId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        try {
-            boolean unfriended = friendshipService.unfriend(friendId, userPrincipal.getId());
-            if (unfriended) {
-                Map<String, String> response = new HashMap<>();
-                response.put("message", "User unfriended successfully");
-                return ResponseEntity.ok(response);
-            } else {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", "Users are not friends or friendship not found");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-            }
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to unfriend user: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        boolean unfriended = friendshipService.unfriend(friendId, userPrincipal.getId());
+        if (!unfriended) {
+            throw new RuntimeException("Users are not friends or friendship not found");
         }
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "User unfriended successfully");
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getFriendshipById(@PathVariable Long id) {
-        try {
-            FriendshipResponse friendship = friendshipService.getFriendshipById(id);
-            return ResponseEntity.ok(friendship);
-        } catch (FriendshipNotFoundException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-        }
+    public ResponseEntity<FriendshipResponse> getFriendshipById(@PathVariable Long id) {
+        FriendshipResponse friendship = friendshipService.getFriendshipById(id);
+        return ResponseEntity.ok(friendship);
     }
 
     @GetMapping("/my-friends")
-    public ResponseEntity<?> getMyFriends(
+    public ResponseEntity<Page<FriendshipResponse>> getMyFriends(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<FriendshipResponse> friends = friendshipService.getFriends(userPrincipal.getId(), pageable);
-            return ResponseEntity.ok(friends);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch friends: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        Pageable pageable = PageRequest.of(page, size);
+        Page<FriendshipResponse> friends = friendshipService.getFriends(userPrincipal.getId(), pageable);
+        return ResponseEntity.ok(friends);
     }
 
     @GetMapping("/user/{userId}/friends")
-    public ResponseEntity<?> getUserFriends(
+    public ResponseEntity<Page<FriendshipResponse>> getUserFriends(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<FriendshipResponse> friends = friendshipService.getFriends(userId, pageable);
-            return ResponseEntity.ok(friends);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch user friends: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        Pageable pageable = PageRequest.of(page, size);
+        Page<FriendshipResponse> friends = friendshipService.getFriends(userId, pageable);
+        return ResponseEntity.ok(friends);
     }
 
     @GetMapping("/pending-requests")
-    public ResponseEntity<?> getPendingFriendRequests(
+    public ResponseEntity<Page<FriendshipResponse>> getPendingFriendRequests(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<FriendshipResponse> requests = friendshipService.getPendingFriendRequests(userPrincipal.getId(), pageable);
-            return ResponseEntity.ok(requests);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch pending requests: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        Pageable pageable = PageRequest.of(page, size);
+        Page<FriendshipResponse> requests = friendshipService.getPendingFriendRequests(userPrincipal.getId(), pageable);
+        return ResponseEntity.ok(requests);
     }
 
     @GetMapping("/sent-requests")
-    public ResponseEntity<?> getSentFriendRequests(
+    public ResponseEntity<Page<FriendshipResponse>> getSentFriendRequests(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<FriendshipResponse> requests = friendshipService.getSentFriendRequests(userPrincipal.getId(), pageable);
-            return ResponseEntity.ok(requests);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch sent requests: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        Pageable pageable = PageRequest.of(page, size);
+        Page<FriendshipResponse> requests = friendshipService.getSentFriendRequests(userPrincipal.getId(), pageable);
+        return ResponseEntity.ok(requests);
     }
 
     @GetMapping("/status/{userId}")
-    public ResponseEntity<?> getFriendshipStatus(
+    public ResponseEntity<Map<String, Object>> getFriendshipStatus(
             @PathVariable Long userId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        try {
-            String status = friendshipService.getFriendshipStatus(userPrincipal.getId(), userId);
-            boolean areFriends = friendshipService.areUsersFriends(userPrincipal.getId(), userId);
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", status);
-            response.put("areFriends", areFriends);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch friendship status: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        String status = friendshipService.getFriendshipStatus(userPrincipal.getId(), userId);
+        boolean areFriends = friendshipService.areUsersFriends(userPrincipal.getId(), userId);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", status);
+        response.put("areFriends", areFriends);
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/between/{userId1}/{userId2}")
-    public ResponseEntity<?> getFriendshipBetweenUsers(
+    public ResponseEntity<Map<String, Object>> getFriendshipBetweenUsers(
             @PathVariable Long userId1,
             @PathVariable Long userId2) {
-        try {
-            FriendshipResponse friendship = friendshipService.getFriendshipBetweenUsers(userId1, userId2);
-            if (friendship != null) {
-                return ResponseEntity.ok(friendship);
-            } else {
-                Map<String, String> response = new HashMap<>();
-                response.put("message", "No friendship exists between these users");
-                return ResponseEntity.ok(response);
-            }
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch friendship: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        FriendshipResponse friendship = friendshipService.getFriendshipBetweenUsers(userId1, userId2);
+        if (friendship != null) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("friendship", friendship);
+            return ResponseEntity.ok(response);
+        } else {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "No friendship exists between these users");
+            return ResponseEntity.ok(response);
         }
     }
 
     @GetMapping("/count/friends/{userId}")
-    public ResponseEntity<?> getFriendCount(@PathVariable Long userId) {
-        try {
-            Long friendCount = friendshipService.getFriendCount(userId);
-            Map<String, Long> response = new HashMap<>();
-            response.put("count", friendCount);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch friend count: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+    public ResponseEntity<Map<String, Long>> getFriendCount(@PathVariable Long userId) {
+        Long friendCount = friendshipService.getFriendCount(userId);
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", friendCount);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/count/pending-requests")
-    public ResponseEntity<?> getPendingRequestCount(@AuthenticationPrincipal UserPrincipal userPrincipal) {
-        try {
-            Long pendingCount = friendshipService.getPendingRequestCount(userPrincipal.getId());
-            Map<String, Long> response = new HashMap<>();
-            response.put("count", pendingCount);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch pending request count: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+    public ResponseEntity<Map<String, Long>> getPendingRequestCount(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        Long pendingCount = friendshipService.getPendingRequestCount(userPrincipal.getId());
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", pendingCount);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/friend-ids")
-    public ResponseEntity<?> getFriendIds(@AuthenticationPrincipal UserPrincipal userPrincipal) {
-        try {
-            List<Long> friendIds = friendshipService.getFriendIds(userPrincipal.getId());
-            Map<String, List<Long>> response = new HashMap<>();
-            response.put("friendIds", friendIds);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch friend IDs: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+    public ResponseEntity<Map<String, List<Long>>> getFriendIds(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        List<Long> friendIds = friendshipService.getFriendIds(userPrincipal.getId());
+        Map<String, List<Long>> response = new HashMap<>();
+        response.put("friendIds", friendIds);
+        return ResponseEntity.ok(response);
     }
 } 

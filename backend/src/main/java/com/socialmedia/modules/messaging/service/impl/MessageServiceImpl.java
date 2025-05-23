@@ -1,17 +1,17 @@
 package com.socialmedia.modules.messaging.service.impl;
 
-import com.socialmedia.entity.Message;
-import com.socialmedia.entity.User;
+import com.socialmedia.modules.messaging.entity.Message;
+import com.socialmedia.modules.user.entity.User;
 import com.socialmedia.modules.messaging.dto.MessageRequest;
 import com.socialmedia.modules.messaging.dto.MessageResponse;
 import com.socialmedia.modules.messaging.dto.ConversationResponse;
-import com.socialmedia.modules.messaging.exception.MessageNotFoundException;
-import com.socialmedia.modules.messaging.exception.UnauthorizedMessageAccessException;
+import com.socialmedia.shared.exception.exceptions.MessageNotFoundException;
+import com.socialmedia.shared.exception.exceptions.UnauthorizedMessageAccessException;
 import com.socialmedia.modules.messaging.service.MessageService;
 import com.socialmedia.modules.user.dto.UserSummaryResponse;
-import com.socialmedia.modules.user.exception.UserNotFoundException;
-import com.socialmedia.repository.MessageRepository;
-import com.socialmedia.repository.UserRepository;
+import com.socialmedia.shared.exception.exceptions.UserNotFoundException;
+import com.socialmedia.modules.messaging.repository.MessageRepository;
+import com.socialmedia.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

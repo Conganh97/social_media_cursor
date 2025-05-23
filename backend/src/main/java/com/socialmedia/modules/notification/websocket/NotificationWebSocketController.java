@@ -1,6 +1,6 @@
 package com.socialmedia.modules.notification.websocket;
 
-import com.socialmedia.entity.Notification;
+import com.socialmedia.modules.notification.entity.Notification;
 import com.socialmedia.modules.notification.dto.NotificationResponse;
 import com.socialmedia.modules.notification.service.NotificationService;
 import com.socialmedia.security.UserPrincipal;

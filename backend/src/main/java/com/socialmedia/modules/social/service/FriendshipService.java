@@ -2,7 +2,7 @@ package com.socialmedia.modules.social.service;
 
 import com.socialmedia.modules.social.dto.FriendshipRequest;
 import com.socialmedia.modules.social.dto.FriendshipResponse;
-import com.socialmedia.entity.Friendship;
+import com.socialmedia.modules.social.entity.Friendship;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

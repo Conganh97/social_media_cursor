@@ -2,12 +2,14 @@ package com.socialmedia.modules.social.service.impl;
 
 import com.socialmedia.modules.social.service.LikeService;
 import com.socialmedia.modules.user.dto.UserSummaryResponse;
-import com.socialmedia.entity.Like;
-import com.socialmedia.entity.Post;
-import com.socialmedia.entity.User;
-import com.socialmedia.repository.LikeRepository;
-import com.socialmedia.repository.PostRepository;
-import com.socialmedia.repository.UserRepository;
+import com.socialmedia.shared.exception.exceptions.UserNotFoundException;
+import com.socialmedia.shared.exception.exceptions.PostNotFoundException;
+import com.socialmedia.modules.social.entity.Like;
+import com.socialmedia.modules.post.entity.Post;
+import com.socialmedia.modules.user.entity.User;
+import com.socialmedia.modules.social.repository.LikeRepository;
+import com.socialmedia.modules.post.repository.PostRepository;
+import com.socialmedia.modules.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,42 +37,34 @@ public class LikeServiceImpl implements LikeService {
 
     @Override
     public boolean likePost(Long postId, Long userId) {
-        try {
-            // Check if already liked
-            if (isPostLikedByUser(postId, userId)) {
-                return false; // Already liked
-            }
-
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-
-            Post post = postRepository.findById(postId)
-                    .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
-
-            Like like = new Like();
-            like.setUser(user);
-            like.setPost(post);
-            like.setCreatedAt(LocalDateTime.now());
-
-            likeRepository.save(like);
-            return true;
-        } catch (Exception e) {
-            return false;
+        // Check if already liked
+        if (isPostLikedByUser(postId, userId)) {
+            return false; // Already liked
         }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException(postId));
+
+        Like like = new Like();
+        like.setUser(user);
+        like.setPost(post);
+        like.setCreatedAt(LocalDateTime.now());
+
+        likeRepository.save(like);
+        return true;
     }
 
     @Override
     public boolean unlikePost(Long postId, Long userId) {
-        try {
-            Optional<Like> existingLike = likeRepository.findByPostIdAndUserId(postId, userId);
-            if (existingLike.isPresent()) {
-                likeRepository.delete(existingLike.get());
-                return true;
-            }
-            return false; // Not liked
-        } catch (Exception e) {
-            return false;
+        Optional<Like> existingLike = likeRepository.findByPostIdAndUserId(postId, userId);
+        if (existingLike.isPresent()) {
+            likeRepository.delete(existingLike.get());
+            return true;
         }
+        return false; // Not liked
     }
 
     @Override

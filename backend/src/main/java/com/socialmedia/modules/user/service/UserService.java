@@ -4,7 +4,7 @@ import com.socialmedia.modules.auth.dto.RegisterRequest;
 import com.socialmedia.modules.user.dto.UserInfoResponse;
 import com.socialmedia.modules.user.dto.UserSummaryResponse;
 import com.socialmedia.modules.user.dto.UserUpdateRequest;
-import com.socialmedia.entity.User;
+import com.socialmedia.modules.user.entity.User;
 
 import java.util.List;
 

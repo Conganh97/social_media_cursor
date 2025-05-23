@@ -2,7 +2,7 @@ package com.socialmedia.modules.social.service;
 
 import com.socialmedia.modules.social.dto.CommentRequest;
 import com.socialmedia.modules.social.dto.CommentResponse;
-import com.socialmedia.entity.Comment;
+import com.socialmedia.modules.social.entity.Comment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

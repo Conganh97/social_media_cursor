@@ -1,6 +1,5 @@
 package com.socialmedia.modules.social.service;
 
-import com.socialmedia.entity.Like;
 import com.socialmedia.modules.user.dto.UserSummaryResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -3,7 +3,7 @@ package com.socialmedia.modules.post.service;
 import com.socialmedia.modules.post.dto.PostRequest;
 import com.socialmedia.modules.post.dto.PostResponse;
 import com.socialmedia.modules.post.dto.PostSummaryResponse;
-import com.socialmedia.entity.Post;
+import com.socialmedia.modules.post.entity.Post;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

@@ -2,16 +2,18 @@ package com.socialmedia.modules.social.service.impl;
 
 import com.socialmedia.modules.social.dto.CommentRequest;
 import com.socialmedia.modules.social.dto.CommentResponse;
-import com.socialmedia.modules.social.exception.CommentNotFoundException;
-import com.socialmedia.modules.social.exception.UnauthorizedSocialActionException;
+import com.socialmedia.shared.exception.exceptions.CommentNotFoundException;
+import com.socialmedia.shared.exception.exceptions.UnauthorizedSocialActionException;
 import com.socialmedia.modules.social.service.CommentService;
 import com.socialmedia.modules.user.dto.UserSummaryResponse;
-import com.socialmedia.entity.Comment;
-import com.socialmedia.entity.Post;
-import com.socialmedia.entity.User;
-import com.socialmedia.repository.CommentRepository;
-import com.socialmedia.repository.PostRepository;
-import com.socialmedia.repository.UserRepository;
+import com.socialmedia.shared.exception.exceptions.UserNotFoundException;
+import com.socialmedia.shared.exception.exceptions.PostNotFoundException;
+import com.socialmedia.modules.social.entity.Comment;
+import com.socialmedia.modules.post.entity.Post;
+import com.socialmedia.modules.user.entity.User;
+import com.socialmedia.modules.social.repository.CommentRepository;
+import com.socialmedia.modules.post.repository.PostRepository;
+import com.socialmedia.modules.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,10 +41,10 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public CommentResponse createComment(CommentRequest commentRequest, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         Post post = postRepository.findById(commentRequest.getPostId())
-                .orElseThrow(() -> new RuntimeException("Post not found with id: " + commentRequest.getPostId()));
+                .orElseThrow(() -> new PostNotFoundException(commentRequest.getPostId()));
 
         Comment comment = new Comment();
         comment.setContent(commentRequest.getContent());
@@ -87,7 +89,7 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = getCommentEntityById(commentId);
 
         if (!comment.getUser().getId().equals(userId)) {
-            throw new UnauthorizedSocialActionException("update comment", userId);
+            throw UnauthorizedSocialActionException.forComment(commentId, userId);
         }
 
         comment.setContent(commentRequest.getContent());
@@ -97,18 +99,14 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public boolean deleteComment(Long commentId, Long userId) {
-        try {
-            Comment comment = getCommentEntityById(commentId);
+        Comment comment = getCommentEntityById(commentId);
 
-            if (!comment.getUser().getId().equals(userId)) {
-                throw new UnauthorizedSocialActionException("delete comment", userId);
-            }
-
-            commentRepository.delete(comment);
-            return true;
-        } catch (Exception e) {
-            return false;
+        if (!comment.getUser().getId().equals(userId)) {
+            throw UnauthorizedSocialActionException.forComment(commentId, userId);
         }
+
+        commentRepository.delete(comment);
+        return true;
     }
 
     @Override

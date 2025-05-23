@@ -2,10 +2,17 @@ package com.socialmedia.modules.social.controller;
 
 import com.socialmedia.modules.social.dto.CommentRequest;
 import com.socialmedia.modules.social.dto.CommentResponse;
-import com.socialmedia.modules.social.exception.CommentNotFoundException;
-import com.socialmedia.modules.social.exception.UnauthorizedSocialActionException;
 import com.socialmedia.modules.social.service.CommentService;
 import com.socialmedia.security.UserPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,153 +30,385 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/comments")
 @CrossOrigin(origins = "*", maxAge = 3600)
+@Tag(name = "Social Interactions", description = "Comments, likes, and friendship management")
+@SecurityRequirement(name = "Bearer Authentication")
 public class CommentController {
 
     @Autowired
     private CommentService commentService;
 
+    @Operation(
+            summary = "Create Comment",
+            description = "Add a new comment to a post.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Comment creation data",
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CommentRequest.class),
+                            examples = @ExampleObject(
+                                    name = "Comment Creation Example",
+                                    value = """
+                                            {
+                                              "postId": 1,
+                                              "content": "Great post! I totally agree with your perspective on this topic."
+                                            }"""
+                            )
+                    )
+            )
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Comment created successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CommentResponse.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "id": 1,
+                                              "content": "Great post! I totally agree with your perspective on this topic.",
+                                              "createdAt": "2024-01-15T15:30:00Z",
+                                              "updatedAt": "2024-01-15T15:30:00Z",
+                                              "postId": 1,
+                                              "user": {
+                                                "id": 2,
+                                                "username": "jane_smith",
+                                                "firstName": "Jane",
+                                                "lastName": "Smith",
+                                                "profileImageUrl": "/uploads/avatars/2_profile.jpg"
+                                              }
+                                            }"""
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Validation error",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Authentication required",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Post not found",
+                    content = @Content(mediaType = "application/json")
+            )
+    })
     @PostMapping
-    public ResponseEntity<?> createComment(
+    public ResponseEntity<CommentResponse> createComment(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody CommentRequest commentRequest) {
-        try {
-            CommentResponse createdComment = commentService.createComment(commentRequest, userPrincipal.getId());
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdComment);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to create comment: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        CommentResponse createdComment = commentService.createComment(commentRequest, userPrincipal.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdComment);
     }
 
+    @Operation(
+            summary = "Get Comment by ID",
+            description = "Retrieve a specific comment by its ID.",
+            parameters = @Parameter(
+                    name = "id",
+                    description = "Comment ID",
+                    required = true,
+                    example = "1"
+            )
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Comment retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CommentResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Comment not found",
+                    content = @Content(mediaType = "application/json")
+            )
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCommentById(@PathVariable Long id) {
-        try {
-            CommentResponse comment = commentService.getCommentById(id);
-            return ResponseEntity.ok(comment);
-        } catch (CommentNotFoundException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-        }
+    public ResponseEntity<CommentResponse> getCommentById(@PathVariable Long id) {
+        CommentResponse comment = commentService.getCommentById(id);
+        return ResponseEntity.ok(comment);
     }
 
+    @Operation(
+            summary = "Update Comment",
+            description = "Update an existing comment. Only the comment author can update their comments.",
+            parameters = @Parameter(
+                    name = "id",
+                    description = "Comment ID to update",
+                    required = true,
+                    example = "1"
+            ),
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Comment update data",
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CommentRequest.class),
+                            examples = @ExampleObject(
+                                    name = "Comment Update Example",
+                                    value = """
+                                            {
+                                              "postId": 1,
+                                              "content": "Updated comment: Great post! I totally agree with your perspective on this topic and would like to add..."
+                                            }"""
+                            )
+                    )
+            )
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Comment updated successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CommentResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Not authorized to update this comment",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Comment not found",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Authentication required",
+                    content = @Content(mediaType = "application/json")
+            )
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateComment(
+    public ResponseEntity<CommentResponse> updateComment(
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody CommentRequest commentRequest) {
-        try {
-            CommentResponse updatedComment = commentService.updateComment(id, commentRequest, userPrincipal.getId());
-            return ResponseEntity.ok(updatedComment);
-        } catch (CommentNotFoundException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-        } catch (UnauthorizedSocialActionException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-        }
+        CommentResponse updatedComment = commentService.updateComment(id, commentRequest, userPrincipal.getId());
+        return ResponseEntity.ok(updatedComment);
     }
 
+    @Operation(
+            summary = "Delete Comment",
+            description = "Delete a comment. Only the comment author can delete their comments.",
+            parameters = @Parameter(
+                    name = "id",
+                    description = "Comment ID to delete",
+                    required = true,
+                    example = "1"
+            )
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Comment deleted successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "message": "Comment deleted successfully"
+                                            }"""
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Not authorized to delete this comment",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Comment not found",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Authentication required",
+                    content = @Content(mediaType = "application/json")
+            )
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteComment(
+    public ResponseEntity<Map<String, String>> deleteComment(
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        try {
-            boolean deleted = commentService.deleteComment(id, userPrincipal.getId());
-            if (deleted) {
-                Map<String, String> response = new HashMap<>();
-                response.put("message", "Comment deleted successfully");
-                return ResponseEntity.ok(response);
-            } else {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", "Failed to delete comment");
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-            }
-        } catch (CommentNotFoundException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-        } catch (UnauthorizedSocialActionException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+        boolean deleted = commentService.deleteComment(id, userPrincipal.getId());
+        if (!deleted) {
+            throw new RuntimeException("Failed to delete comment");
         }
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Comment deleted successfully");
+        return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Get Comments by Post",
+            description = "Get paginated comments for a specific post.",
+            parameters = {
+                    @Parameter(name = "postId", description = "Post ID to get comments for", required = true, example = "1"),
+                    @Parameter(name = "page", description = "Page number (0-based)", example = "0"),
+                    @Parameter(name = "size", description = "Number of comments per page", example = "10")
+            }
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Comments retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = Page.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Post not found",
+                    content = @Content(mediaType = "application/json")
+            )
+    })
     @GetMapping("/post/{postId}")
-    public ResponseEntity<?> getCommentsByPostId(
+    public ResponseEntity<Page<CommentResponse>> getCommentsByPostId(
             @PathVariable Long postId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<CommentResponse> comments = commentService.getCommentsByPostId(postId, pageable);
-            return ResponseEntity.ok(comments);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch comments: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        Pageable pageable = PageRequest.of(page, size);
+        Page<CommentResponse> comments = commentService.getCommentsByPostId(postId, pageable);
+        return ResponseEntity.ok(comments);
     }
 
+    @Operation(
+            summary = "Get Comments by User",
+            description = "Get paginated comments made by a specific user.",
+            parameters = {
+                    @Parameter(name = "userId", description = "User ID to get comments for", required = true, example = "1"),
+                    @Parameter(name = "page", description = "Page number (0-based)", example = "0"),
+                    @Parameter(name = "size", description = "Number of comments per page", example = "10")
+            }
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User comments retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = Page.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content(mediaType = "application/json")
+            )
+    })
     @GetMapping("/user/{userId}")
-    public ResponseEntity<?> getCommentsByUserId(
+    public ResponseEntity<Page<CommentResponse>> getCommentsByUserId(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<CommentResponse> comments = commentService.getCommentsByUserId(userId, pageable);
-            return ResponseEntity.ok(comments);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch user comments: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        Pageable pageable = PageRequest.of(page, size);
+        Page<CommentResponse> comments = commentService.getCommentsByUserId(userId, pageable);
+        return ResponseEntity.ok(comments);
     }
 
+    @Operation(
+            summary = "Get Recent Comments",
+            description = "Get recent comments for a specific post.",
+            parameters = {
+                    @Parameter(name = "postId", description = "Post ID to get recent comments for", required = true, example = "1"),
+                    @Parameter(name = "limit", description = "Maximum number of comments to return", example = "5")
+            }
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Recent comments retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CommentResponse.class)
+                    )
+            )
+    })
     @GetMapping("/post/{postId}/recent")
-    public ResponseEntity<?> getRecentCommentsByPostId(
+    public ResponseEntity<List<CommentResponse>> getRecentCommentsByPostId(
             @PathVariable Long postId,
             @RequestParam(defaultValue = "5") int limit) {
-        try {
-            List<CommentResponse> recentComments = commentService.getRecentCommentsByPostId(postId, limit);
-            return ResponseEntity.ok(recentComments);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch recent comments: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        List<CommentResponse> recentComments = commentService.getRecentCommentsByPostId(postId, limit);
+        return ResponseEntity.ok(recentComments);
     }
 
+    @Operation(
+            summary = "Get Comment Count by Post",
+            description = "Get the total number of comments for a specific post.",
+            parameters = @Parameter(
+                    name = "postId",
+                    description = "Post ID to get comment count for",
+                    required = true,
+                    example = "1"
+            )
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Comment count retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "count": 15
+                                            }"""
+                            )
+                    )
+            )
+    })
     @GetMapping("/count/post/{postId}")
-    public ResponseEntity<?> getCommentCountByPostId(@PathVariable Long postId) {
-        try {
-            Long commentCount = commentService.getCommentCountByPostId(postId);
-            Map<String, Long> response = new HashMap<>();
-            response.put("count", commentCount);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch comment count: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+    public ResponseEntity<Map<String, Long>> getCommentCountByPostId(@PathVariable Long postId) {
+        Long commentCount = commentService.getCommentCountByPostId(postId);
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", commentCount);
+        return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Get Comment Count by User",
+            description = "Get the total number of comments made by a specific user.",
+            parameters = @Parameter(
+                    name = "userId",
+                    description = "User ID to get comment count for",
+                    required = true,
+                    example = "1"
+            )
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User comment count retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "count": 42
+                                            }"""
+                            )
+                    )
+            )
+    })
     @GetMapping("/count/user/{userId}")
-    public ResponseEntity<?> getCommentCountByUserId(@PathVariable Long userId) {
-        try {
-            Long commentCount = commentService.getCommentCountByUserId(userId);
-            Map<String, Long> response = new HashMap<>();
-            response.put("count", commentCount);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to fetch user comment count: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+    public ResponseEntity<Map<String, Long>> getCommentCountByUserId(@PathVariable Long userId) {
+        Long commentCount = commentService.getCommentCountByUserId(userId);
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", commentCount);
+        return ResponseEntity.ok(response);
     }
 } 
