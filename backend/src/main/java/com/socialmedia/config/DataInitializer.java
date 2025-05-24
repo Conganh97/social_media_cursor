@@ -63,7 +63,7 @@ public class DataInitializer implements ApplicationRunner {
             testUser3.setActive(true);
             userRepository.save(testUser3);
 
-            logger.info("Test users created successfully:");
+            logger.info("Test users created successfully.");
         } else {
             logger.info("Database already contains {} users. Skipping test data initialization.", userRepository.count());
         }
