@@ -4,31 +4,19 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { store } from '@/store';
 import { router } from '@/router';
-import { THEME_COLORS } from '@/shared/utils';
+import { ToastManager } from '@/shared/components';
 
 const theme = createTheme({
   palette: {
     primary: {
-      main: THEME_COLORS.PRIMARY,
+      main: '#1976d2',
     },
     secondary: {
-      main: THEME_COLORS.SECONDARY,
-    },
-    error: {
-      main: THEME_COLORS.ERROR,
-    },
-    warning: {
-      main: THEME_COLORS.WARNING,
-    },
-    info: {
-      main: THEME_COLORS.INFO,
-    },
-    success: {
-      main: THEME_COLORS.SUCCESS,
+      main: '#dc004e',
     },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: 'Roboto',
   },
   shape: {
     borderRadius: 8,
@@ -41,6 +29,7 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <RouterProvider router={router} />
+        <ToastManager />
       </ThemeProvider>
     </Provider>
   );

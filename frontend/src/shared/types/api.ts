@@ -17,6 +17,29 @@ export interface PaginatedResponse<T> {
   empty: boolean;
 }
 
+export interface ErrorResponse {
+  message: string;
+  status: number;
+  timestamp: string;
+  path?: string;
+  errors?: FieldError[];
+  correlationId?: string;
+}
+
+export interface FieldError {
+  field: string;
+  message: string;
+  code?: string;
+}
+
+export interface AuthToken {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+  issuedAt: number;
+}
+
 export interface ApiError {
   message: string;
   status: number;
@@ -43,4 +66,25 @@ export interface RequestConfig {
   data?: any;
   params?: Record<string, any>;
   headers?: Record<string, string>;
+}
+
+export type RequestStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
+
+export interface ApiState<T = any> {
+  data?: T;
+  status: RequestStatus;
+  error?: string | null;
+  lastFetch?: number;
+}
+
+export interface CacheConfig {
+  enabled: boolean;
+  duration: number;
+  key: string;
+}
+
+export interface RetryConfig {
+  attempts: number;
+  delay: number;
+  backoff?: boolean;
 } 
