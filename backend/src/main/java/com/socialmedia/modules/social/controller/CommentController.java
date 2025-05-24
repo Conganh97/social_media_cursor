@@ -30,7 +30,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/comments")
 @CrossOrigin(origins = "*", maxAge = 3600)
-@Tag(name = "Social Interactions", description = "Comments, likes, and friendship management")
+@Tag(name = "Social Interactions - Comments", description = "Comment management and post discussions")
 @SecurityRequirement(name = "Bearer Authentication")
 public class CommentController {
 

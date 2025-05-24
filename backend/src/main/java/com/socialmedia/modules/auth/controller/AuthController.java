@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "*", maxAge = 3600)
-@Tag(name = "Authentication", description = "Authentication and authorization endpoints")
+@Tag(name = "Authentication", description = "User authentication and authorization endpoints")
 public class AuthController {
 
     @Autowired
