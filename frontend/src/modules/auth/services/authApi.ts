@@ -1,10 +1,9 @@
 import { httpClient } from '@/shared/services/httpClient';
-import { apiService } from '@/shared/services/apiService';
-import { 
-  LoginCredentials, 
-  RegisterData, 
-  AuthResponse, 
-  RefreshTokenResponse, 
+import {
+  LoginCredentials,
+  RegisterData,
+  AuthResponse,
+  RefreshTokenResponse,
   PasswordReset,
   User
 } from '../types/auth.types';
@@ -13,7 +12,11 @@ class AuthApiService {
   private readonly baseUrl = '/auth';
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await httpClient.post(`${this.baseUrl}/login`, credentials);
+    const loginData = {
+      usernameOrEmail: credentials.email,
+      password: credentials.password
+    };
+    const response = await httpClient.post(`${this.baseUrl}/login`, loginData);
     return response.data as AuthResponse;
   }
 
@@ -49,17 +52,17 @@ class AuthApiService {
   }
 
   async getCurrentUser(): Promise<User> {
-    const response = await httpClient.get(`${this.baseUrl}/me`);
+    const response = await httpClient.get('/users/me');
     return response.data as User;
   }
 
   async updateProfile(userData: Partial<RegisterData>): Promise<User> {
-    const response = await httpClient.put(`${this.baseUrl}/profile`, userData);
+    const response = await httpClient.put('/users/me', userData);
     return response.data as User;
   }
 
   async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
-    const response = await httpClient.put(`${this.baseUrl}/change-password`, {
+    const response = await httpClient.put('/users/me/password', {
       currentPassword,
       newPassword
     });

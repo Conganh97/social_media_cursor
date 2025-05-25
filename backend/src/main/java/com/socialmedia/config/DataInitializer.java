@@ -34,7 +34,7 @@ public class DataInitializer implements ApplicationRunner {
             User testUser1 = new User();
             testUser1.setUsername("anhbc");
             testUser1.setEmail("anhbc@example.com");
-            testUser1.setPassword(passwordEncoder.encode("anhbc123"));
+            testUser1.setPassword(passwordEncoder.encode("Anhbc123@"));
             testUser1.setFirstName("Công Anh");
             testUser1.setLastName("Bùi");
             testUser1.setBio("This is a test user account");

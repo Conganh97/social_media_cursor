@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Box, Alert } from '@mui/material';
+import { Container, Alert } from '@mui/material';
 import { LoadingSpinner } from '@/shared/components';
 import { UserProfile } from '../components/UserProfile';
 import { useUser } from '../hooks/useUser';

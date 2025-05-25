@@ -3,10 +3,10 @@ import {
   Card,
   CardContent,
   Typography,
-  Button,
   Box,
-  Chip,
+  Button,
   IconButton,
+  Chip,
   Tooltip,
 } from '@mui/material';
 import {
@@ -17,8 +17,8 @@ import {
   LocationOn,
   Verified,
 } from '@mui/icons-material';
+import { UserProfile } from '../types/user.types';
 import { UserAvatar } from './UserAvatar';
-import { UserProfile, FriendshipStatus } from '../types/user.types';
 
 interface UserCardProps {
   user: UserProfile;
@@ -46,38 +46,44 @@ export const UserCard: React.FC<UserCardProps> = ({
   isLoading = false,
 }) => {
   const handleFollowClick = () => {
-    if (user.isFollowing) {
-      onUnfollow?.(user.id);
-    } else {
-      onFollow?.(user.id);
+    if (user.isFollowing && onUnfollow) {
+      onUnfollow(user.id);
+    } else if (!user.isFollowing && onFollow) {
+      onFollow(user.id);
     }
   };
 
   const handleMessageClick = () => {
-    onMessage?.(user.id);
+    if (onMessage) {
+      onMessage(user.id);
+    }
   };
 
   const handleProfileClick = () => {
-    onViewProfile?.(user.id);
+    if (onViewProfile) {
+      onViewProfile(user.id);
+    }
   };
 
   const handleMenuClick = () => {
-    onMenuClick?.(user.id);
+    if (onMenuClick) {
+      onMenuClick(user.id);
+    }
   };
 
   const renderStats = () => {
     if (!showStats) return null;
-
+    
     return (
-      <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-        <Typography variant="body2" color="textSecondary">
-          <strong>{user.postCount}</strong> posts
+      <Box sx={{ display: 'flex', gap: 2, mb: 1 }}>
+        <Typography variant="caption" color="textSecondary">
+          {user.postCount || 0} posts
         </Typography>
-        <Typography variant="body2" color="textSecondary">
-          <strong>{user.followerCount}</strong> followers
+        <Typography variant="caption" color="textSecondary">
+          {user.followerCount || 0} followers
         </Typography>
-        <Typography variant="body2" color="textSecondary">
-          <strong>{user.followingCount}</strong> following
+        <Typography variant="caption" color="textSecondary">
+          {user.followingCount || 0} following
         </Typography>
       </Box>
     );
@@ -85,38 +91,27 @@ export const UserCard: React.FC<UserCardProps> = ({
 
   const renderActions = () => {
     if (!showActions) return null;
-
+    
     return (
       <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-        {user.friendshipStatus !== FriendshipStatus.BLOCKED && (
-          <>
-            <Button
-              variant={user.isFollowing ? 'outlined' : 'contained'}
-              size="small"
-              startIcon={user.isFollowing ? <PersonRemove /> : <PersonAdd />}
-              onClick={handleFollowClick}
-              disabled={isLoading}
-            >
-              {user.isFollowing ? 'Unfollow' : 'Follow'}
-            </Button>
-            
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Message />}
-              onClick={handleMessageClick}
-            >
-              Message
-            </Button>
-          </>
-        )}
-        
         <Button
-          variant="text"
+          variant={user.isFollowing ? "outlined" : "contained"}
           size="small"
-          onClick={handleProfileClick}
+          startIcon={user.isFollowing ? <PersonRemove /> : <PersonAdd />}
+          onClick={handleFollowClick}
+          disabled={isLoading}
+          fullWidth
         >
-          View Profile
+          {user.isFollowing ? 'Unfollow' : 'Follow'}
+        </Button>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<Message />}
+          onClick={handleMessageClick}
+          fullWidth
+        >
+          Message
         </Button>
       </Box>
     );
@@ -129,7 +124,8 @@ export const UserCard: React.FC<UserCardProps> = ({
           display: 'flex',
           alignItems: 'center',
           gap: 2,
-          p: 1,
+          p: 2,
+          borderRadius: 1,
           '&:hover': {
             bgcolor: 'action.hover',
           },
@@ -138,7 +134,7 @@ export const UserCard: React.FC<UserCardProps> = ({
         onClick={handleProfileClick}
       >
         <UserAvatar
-          src={user.avatarUrl}
+          src={user.profilePictureUrl}
           firstName={user.firstName}
           lastName={user.lastName}
           size="small"
@@ -199,7 +195,7 @@ export const UserCard: React.FC<UserCardProps> = ({
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
           <UserAvatar
-            src={user.avatarUrl}
+            src={user.profilePictureUrl}
             firstName={user.firstName}
             lastName={user.lastName}
             size="large"

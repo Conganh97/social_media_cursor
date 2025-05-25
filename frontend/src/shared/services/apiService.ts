@@ -117,8 +117,7 @@ class ApiService {
   async upload<T>(
     url: string,
     file: File,
-    onProgress?: (progress: number) => void,
-    options?: ApiOptions
+    onProgress?: (progress: number) => void
   ): Promise<ApiResponse<T>> {
     try {
       return await httpClient.upload<T>(url, file, onProgress);

@@ -169,7 +169,7 @@ export const CreatePost: React.FC<CreatePostProps> = ({
       <form onSubmit={formik.handleSubmit}>
         <CardContent>
           <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-            <Avatar src={user?.avatarUrl}>
+            <Avatar src={user?.profilePictureUrl}>
               {user?.firstName?.[0]}
             </Avatar>
             <Box sx={{ flex: 1 }}>

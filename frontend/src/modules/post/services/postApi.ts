@@ -30,8 +30,17 @@ class PostApiService {
   }
 
   async createPost(postData: CreatePostData): Promise<Post> {
+    if (!postData.images || postData.images.length === 0) {
+      const response = await httpClient.post(this.baseUrl, {
+        content: postData.content,
+        visibility: postData.visibility,
+        location: postData.location,
+        tags: postData.tags
+      });
+      return response.data as Post;
+    }
+
     const formData = new FormData();
-    
     formData.append('content', postData.content);
     
     if (postData.visibility) {
@@ -61,7 +70,12 @@ class PostApiService {
   }
 
   async updatePost(postId: number, data: UpdatePostData): Promise<Post> {
-    const response = await httpClient.put(`${this.baseUrl}/${postId}`, data);
+    const response = await httpClient.put(`${this.baseUrl}/${postId}`, {
+      content: data.content,
+      visibility: data.visibility,
+      location: data.location,
+      tags: data.tags
+    });
     return response.data as Post;
   }
 
@@ -70,33 +84,43 @@ class PostApiService {
   }
 
   async likePost(postId: number): Promise<{ success: boolean; message: string }> {
-    const response = await httpClient.post(`/likes/post/${postId}`);
+    const response = await httpClient.post(`/likes/${postId}`);
     return response.data as { success: boolean; message: string };
   }
 
   async unlikePost(postId: number): Promise<{ success: boolean; message: string }> {
-    const response = await httpClient.delete(`/likes/post/${postId}`);
+    const response = await httpClient.delete(`/likes/${postId}`);
     return response.data as { success: boolean; message: string };
   }
 
+  async toggleLike(postId: number): Promise<{ liked: boolean; likeCount: number }> {
+    const response = await httpClient.post(`/likes/${postId}/toggle`);
+    return response.data as { liked: boolean; likeCount: number };
+  }
+
   async checkIfLiked(postId: number): Promise<{ isLiked: boolean }> {
-    const response = await httpClient.get(`/likes/post/${postId}/status`);
+    const response = await httpClient.get(`/likes/${postId}/status`);
     return response.data as { isLiked: boolean };
   }
 
   async getPostLikes(postId: number, page: number = 0, size: number = 10): Promise<{
-    users: Array<{ id: number; username: string; firstName: string; lastName: string; avatarUrl?: string }>;
+    users: Array<{ id: number; username: string; firstName: string; lastName: string; profilePictureUrl?: string }>;
     totalElements: number;
     hasNext: boolean;
   }> {
-    const response = await httpClient.get(`/likes/post/${postId}/users`, {
+    const response = await httpClient.get(`/likes/${postId}/users`, {
       params: { page, size }
     });
     return response.data as {
-      users: Array<{ id: number; username: string; firstName: string; lastName: string; avatarUrl?: string }>;
+      users: Array<{ id: number; username: string; firstName: string; lastName: string; profilePictureUrl?: string }>;
       totalElements: number;
       hasNext: boolean;
     };
+  }
+
+  async getLikeCount(postId: number): Promise<{ count: number }> {
+    const response = await httpClient.get(`/likes/count/post/${postId}`);
+    return response.data as { count: number };
   }
 
   async searchPosts(
@@ -138,6 +162,11 @@ class PostApiService {
       params: { page, size }
     });
     return response.data as FeedResponse;
+  }
+
+  async getPostCount(userId: number): Promise<{ count: number }> {
+    const response = await httpClient.get(`${this.baseUrl}/count/user/${userId}`);
+    return response.data as { count: number };
   }
 
   async reportPost(postId: number, reason: string): Promise<{ success: boolean; message: string }> {

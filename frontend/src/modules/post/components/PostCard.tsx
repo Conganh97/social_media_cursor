@@ -164,7 +164,7 @@ export const PostCard: React.FC<PostCardProps> = ({
         <CardHeader
           avatar={
             <Avatar
-              src={post.author.avatarUrl}
+              src={post.author.profilePictureUrl}
               onClick={handleUserClick}
               sx={{ cursor: 'pointer' }}
             >

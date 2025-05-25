@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { FormState, FormValidation, ValidationRule } from '@/shared/types';
+import { FormValidation, ValidationRule } from '@/shared/types';
 import { validateForm } from '@/shared/utils';
 
 interface UseFormOptions<T> {

@@ -1,5 +1,3 @@
-import { CacheConfig } from '@/shared/types';
-
 interface CacheItem<T> {
   data: T;
   timestamp: number;

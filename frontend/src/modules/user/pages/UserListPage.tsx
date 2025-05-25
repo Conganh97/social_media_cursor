@@ -9,7 +9,6 @@ import {
   Paper,
 } from '@mui/material';
 import { UserSearch } from '../components/UserSearch';
-import { UserCard } from '../components/UserCard';
 import { useUser } from '../hooks/useUser';
 
 interface TabPanelProps {
@@ -34,9 +33,8 @@ export const UserListPage: React.FC = () => {
   const { followUser, unfollowUser } = useUser();
   
   const listType = searchParams.get('type') || 'search';
-  const userId = searchParams.get('userId');
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 

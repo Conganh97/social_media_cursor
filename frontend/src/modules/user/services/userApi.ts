@@ -26,16 +26,16 @@ class UserApiService {
     return response.data as User;
   }
 
-  async uploadAvatar(file: File): Promise<{ avatarUrl: string }> {
+  async uploadAvatar(file: File): Promise<{ profilePictureUrl: string }> {
     const formData = new FormData();
-    formData.append('avatar', file);
+    formData.append('file', file);
     
-    const response = await httpClient.post(`${this.baseUrl}/me/avatar`, formData, {
+    const response = await httpClient.post(`${this.baseUrl}/upload-avatar`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data as { avatarUrl: string };
+    return response.data as { profilePictureUrl: string };
   }
 
   async deleteAvatar(): Promise<{ message: string }> {
@@ -50,7 +50,7 @@ class UserApiService {
   }> {
     const { query, page, limit, filters } = searchParams;
     const params = new URLSearchParams({
-      q: query,
+      query: query,
       page: page.toString(),
       limit: limit.toString(),
     });
@@ -63,6 +63,11 @@ class UserApiService {
 
     const response = await httpClient.get(`${this.baseUrl}/search?${params}`);
     return response.data as { users: UserProfile[]; totalCount: number; hasMore: boolean };
+  }
+
+  async getUsersByIds(userIds: number[]): Promise<UserProfile[]> {
+    const response = await httpClient.post(`${this.baseUrl}/users-by-ids`, userIds);
+    return response.data as UserProfile[];
   }
 
   async getUserStats(userId: number): Promise<UserStats> {

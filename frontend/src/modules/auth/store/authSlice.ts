@@ -16,8 +16,8 @@ export const loginAsync = createAsyncThunk(
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
       const response = await authApi.login(credentials);
-      localStorage.setItem('auth_token', response.token.token);
-      localStorage.setItem('refresh_token', response.token.refreshToken);
+      localStorage.setItem('auth_token', response.token);
+      localStorage.setItem('refresh_token', response.refreshToken);
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Login failed');
@@ -30,8 +30,8 @@ export const registerAsync = createAsyncThunk(
   async (userData: RegisterData, { rejectWithValue }) => {
     try {
       const response = await authApi.register(userData);
-      localStorage.setItem('auth_token', response.token.token);
-      localStorage.setItem('refresh_token', response.token.refreshToken);
+      localStorage.setItem('auth_token', response.token);
+      localStorage.setItem('refresh_token', response.refreshToken);
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Registration failed');
@@ -126,9 +126,22 @@ const authSlice = createSlice({
       })
       .addCase(loginAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token.token;
-        state.refreshToken = action.payload.token.refreshToken;
+        state.user = {
+          id: action.payload.userId,
+          username: action.payload.username,
+          email: action.payload.email,
+          firstName: '',
+          lastName: '',
+          profilePictureUrl: undefined,
+          bio: undefined,
+          location: undefined,
+          website: undefined,
+          joinDate: new Date().toISOString(),
+          lastActive: new Date().toISOString(),
+          isActive: true,
+        };
+        state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -142,9 +155,22 @@ const authSlice = createSlice({
       })
       .addCase(registerAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token.token;
-        state.refreshToken = action.payload.token.refreshToken;
+        state.user = {
+          id: action.payload.userId,
+          username: action.payload.username,
+          email: action.payload.email,
+          firstName: '',
+          lastName: '',
+          profilePictureUrl: undefined,
+          bio: undefined,
+          location: undefined,
+          website: undefined,
+          joinDate: new Date().toISOString(),
+          lastActive: new Date().toISOString(),
+          isActive: true,
+        };
+        state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -174,9 +200,6 @@ const authSlice = createSlice({
       })
       .addCase(verifyEmailAsync.fulfilled, (state) => {
         state.isLoading = false;
-        if (state.user) {
-          state.user.isEmailVerified = true;
-        }
       })
       .addCase(verifyEmailAsync.rejected, (state, action) => {
         state.isLoading = false;

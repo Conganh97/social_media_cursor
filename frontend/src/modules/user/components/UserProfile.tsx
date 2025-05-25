@@ -75,7 +75,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const [tabValue, setTabValue] = useState(0);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
@@ -121,7 +121,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
           <UserAvatar
-            src={user.avatarUrl}
+            src={user.profilePictureUrl}
             firstName={user.firstName}
             lastName={user.lastName}
             size={120}

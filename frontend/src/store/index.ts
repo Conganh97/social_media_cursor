@@ -7,6 +7,8 @@ import { connectivitySlice } from './slices/connectivitySlice';
 import authReducer from '@/modules/auth/store/authSlice';
 import userReducer from '@/modules/user/store/userSlice';
 import postReducer from '@/modules/post/store/postSlice';
+import socialReducer from '@/modules/social/store/socialSlice';
+import messageReducer from '@/modules/messaging/store/messageSlice';
 
 const rootReducer = combineReducers({
   app: appSlice.reducer,
@@ -15,6 +17,8 @@ const rootReducer = combineReducers({
   auth: authReducer,
   user: userReducer,
   posts: postReducer,
+  social: socialReducer,
+  messages: messageReducer,
 });
 
 export const store = configureStore({

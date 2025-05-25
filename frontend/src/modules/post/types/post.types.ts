@@ -3,7 +3,7 @@ export interface User {
   username: string;
   firstName: string;
   lastName: string;
-  avatarUrl?: string;
+  profilePictureUrl?: string;
 }
 
 export interface PostImage {

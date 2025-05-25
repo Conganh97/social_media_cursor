@@ -61,7 +61,7 @@ export const themeSlice = createSlice({
         state.mode = prefersDark ? 'light' : 'dark';
       }
     },
-    resetTheme: (state) => {
+    resetTheme: (_state) => {
       return initialState;
     },
   },

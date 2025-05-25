@@ -21,7 +21,7 @@ import { LoadingSpinner } from '@/shared/components';
 
 export const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser, isLoading, error, uploadAvatar } = useUser();
+  const { currentUser, isLoading, error } = useUser();
 
   const {
     formData,
@@ -107,7 +107,7 @@ export const EditProfilePage: React.FC = () => {
         <Box component="form" onSubmit={handleSubmit}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 4 }}>
             <UserAvatar
-              src={currentUser.avatarUrl}
+              src={currentUser.profilePictureUrl}
               firstName={currentUser.firstName}
               lastName={currentUser.lastName}
               size="large"

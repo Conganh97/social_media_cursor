@@ -192,7 +192,7 @@ const userSlice = createSlice({
       .addCase(uploadAvatarAsync.fulfilled, (state, action) => {
         state.isUploading = false;
         if (state.currentUser) {
-          state.currentUser.avatarUrl = action.payload.avatarUrl;
+          state.currentUser.profilePictureUrl = action.payload.profilePictureUrl;
         }
       })
       .addCase(uploadAvatarAsync.rejected, (state, action) => {

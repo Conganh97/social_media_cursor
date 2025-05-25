@@ -5,16 +5,14 @@ interface UseInfiniteScrollOptions {
   isLoading: boolean;
   onLoadMore: () => void;
   threshold?: number;
-  rootMargin?: string;
 }
 
-export function useInfiniteScroll({
+export const useInfiniteScroll = ({
   hasMore,
   isLoading,
   onLoadMore,
-  threshold = 100,
-  rootMargin = '0px',
-}: UseInfiniteScrollOptions) {
+  threshold = 1.0,
+}: UseInfiniteScrollOptions) => {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const handleIntersection = useCallback(

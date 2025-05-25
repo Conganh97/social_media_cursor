@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { Post, PostsState, CreatePostData, UpdatePostData, FeedResponse, PostFilters } from '../types/post.types';
+import { Post, PostsState, CreatePostData, UpdatePostData, PostFilters } from '../types/post.types';
 import { postApi } from '../services/postApi';
 
 const initialState: PostsState = {

@@ -43,7 +43,6 @@ export const FeedPage: React.FC<FeedPageProps> = ({
     isLoading,
     error,
     hasMoreFeed,
-    feedPage,
     getFeed,
     getUserPosts,
     clearError,

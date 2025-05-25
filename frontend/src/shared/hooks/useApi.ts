@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { ApiResponse, ApiState, CacheConfig, RetryConfig } from '@/shared/types';
-import { apiService } from '@/shared/services';
+import { ApiState, CacheConfig, RetryConfig } from '@/shared/types';
+import { apiService } from '@/shared/services/apiService';
 
 interface UseApiOptions {
   cache?: CacheConfig;

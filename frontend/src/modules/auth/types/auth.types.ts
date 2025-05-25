@@ -4,10 +4,23 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  avatarUrl?: string;
-  isEmailVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
+  profilePictureUrl?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  joinDate: string;
+  lastActive: string;
+  isActive: boolean;
+}
+
+// JWT Response structure from API documentation
+export interface JwtResponse {
+  token: string;
+  refreshToken: string;
+  type: string; // "Bearer"
+  userId: number;
+  username: string;
+  email: string;
 }
 
 export interface AuthToken {
@@ -18,7 +31,7 @@ export interface AuthToken {
 }
 
 export interface LoginCredentials {
-  email: string;
+  email: string; // Will be converted to usernameOrEmail in API service
   password: string;
   rememberMe?: boolean;
 }
@@ -65,12 +78,21 @@ export interface AuthFormErrors {
   general?: string;
 }
 
+// Updated to match API documentation
 export interface AuthResponse {
-  user: User;
-  token: AuthToken;
+  token: string;
+  refreshToken: string;
+  type: string;
+  userId: number;
+  username: string;
+  email: string;
 }
 
 export interface RefreshTokenResponse {
   token: string;
-  expiresIn: number;
+  refreshToken: string;
+  type: string;
+  userId: number;
+  username: string;
+  email: string;
 } 
