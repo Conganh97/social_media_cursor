@@ -9,6 +9,7 @@ import userReducer from '@/modules/user/store/userSlice';
 import postReducer from '@/modules/post/store/postSlice';
 import socialReducer from '@/modules/social/store/socialSlice';
 import messageReducer from '@/modules/messaging/store/messageSlice';
+import notificationReducer from '@/modules/notification/store/notificationSlice';
 
 const rootReducer = combineReducers({
   app: appSlice.reducer,
@@ -19,6 +20,7 @@ const rootReducer = combineReducers({
   posts: postReducer,
   social: socialReducer,
   messages: messageReducer,
+  notification: notificationReducer,
 });
 
 export const store = configureStore({

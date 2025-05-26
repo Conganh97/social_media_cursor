@@ -53,6 +53,9 @@ export const FeedPage: React.FC<FeedPageProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [filterType, setFilterType] = useState<'recent' | 'trending'>('recent');
 
+  // Ensure feedPosts is always an array
+  const safeFeedPosts = Array.isArray(feedPosts) ? feedPosts : [];
+
   // Load initial feed
   useEffect(() => {
     const loadInitialFeed = async () => {
@@ -89,7 +92,8 @@ export const FeedPage: React.FC<FeedPageProps> = ({
 
   const handleCreatePostSuccess = () => {
     setCreatePostOpen(false);
-    handleRefresh();
+    // Don't refresh the feed since the new post is already added to state by Redux
+    // handleRefresh(); // Commented out to prevent clearing the feed
   };
 
   const handlePostComment = (postId: number) => {
@@ -198,7 +202,7 @@ export const FeedPage: React.FC<FeedPageProps> = ({
 
       {/* Posts List */}
       <Box>
-        {feedPosts.length === 0 && !isLoading ? (
+        {safeFeedPosts.length === 0 && !isLoading ? (
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <Typography variant="h6" color="textSecondary" gutterBottom>
               No posts found
@@ -219,7 +223,7 @@ export const FeedPage: React.FC<FeedPageProps> = ({
           </Box>
         ) : (
           <>
-            {feedPosts.map((post: Post) => (
+            {safeFeedPosts.map((post: Post) => (
               <PostCard
                 key={post.id}
                 post={post}
@@ -230,7 +234,7 @@ export const FeedPage: React.FC<FeedPageProps> = ({
             ))}
 
             {/* End of Feed Message */}
-            {!hasMoreFeed && feedPosts.length > 0 && (
+            {!hasMoreFeed && safeFeedPosts.length > 0 && (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Divider />
                 <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
@@ -293,7 +297,7 @@ export const FeedPage: React.FC<FeedPageProps> = ({
       </Drawer>
 
       {/* Initial Loading */}
-      {isLoading && feedPosts.length === 0 && (
+      {isLoading && safeFeedPosts.length === 0 && (
         <LoadingSpinner fullScreen message="Loading feed..." />
       )}
     </Container>

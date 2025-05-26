@@ -26,7 +26,10 @@ export const PostList: React.FC<PostListProps> = ({
   emptyDescription = 'Be the first to share something!',
   compact = false,
 }) => {
-  if (posts.length === 0 && !isLoading) {
+  // Ensure posts is always an array
+  const safePosts = Array.isArray(posts) ? posts : [];
+
+  if (safePosts.length === 0 && !isLoading) {
     return (
       <Box sx={{ textAlign: 'center', py: 8 }}>
         <Typography variant="h6" color="textSecondary" gutterBottom>
@@ -41,7 +44,7 @@ export const PostList: React.FC<PostListProps> = ({
 
   return (
     <Box>
-      {posts.map((post) => (
+      {safePosts.map((post) => (
         <PostCard
           key={post.id}
           post={post}
@@ -60,7 +63,7 @@ export const PostList: React.FC<PostListProps> = ({
       )}
 
       {/* End of List Message */}
-      {!hasMore && posts.length > 0 && (
+      {!hasMore && safePosts.length > 0 && (
         <Box sx={{ textAlign: 'center', py: 4 }}>
           <Divider />
           <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>

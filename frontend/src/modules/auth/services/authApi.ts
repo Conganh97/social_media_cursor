@@ -13,7 +13,7 @@ class AuthApiService {
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     const loginData = {
-      usernameOrEmail: credentials.email,
+      usernameOrEmail: credentials.usernameOrEmail,
       password: credentials.password
     };
     const response = await httpClient.post(`${this.baseUrl}/login`, loginData);

@@ -1,23 +1,31 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AuthState, LoginCredentials, RegisterData, User } from '../types/auth.types';
 import { authApi } from '../services/authApi';
+import { LOCAL_STORAGE_KEYS } from '@/shared/utils/constants';
 
-const initialState: AuthState = {
-  user: null,
-  token: localStorage.getItem('auth_token'),
-  refreshToken: localStorage.getItem('refresh_token'),
-  isAuthenticated: false,
-  isLoading: false,
-  error: null,
+const getInitialAuthState = (): AuthState => {
+  const token = localStorage.getItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN);
+  const refreshToken = localStorage.getItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN);
+  
+  return {
+    user: null,
+    token,
+    refreshToken,
+    isAuthenticated: !!token,
+    isLoading: false,
+    error: null,
+  };
 };
+
+const initialState: AuthState = getInitialAuthState();
 
 export const loginAsync = createAsyncThunk(
   'auth/login',
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
       const response = await authApi.login(credentials);
-      localStorage.setItem('auth_token', response.token);
-      localStorage.setItem('refresh_token', response.refreshToken);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN, response.token);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Login failed');
@@ -30,8 +38,8 @@ export const registerAsync = createAsyncThunk(
   async (userData: RegisterData, { rejectWithValue }) => {
     try {
       const response = await authApi.register(userData);
-      localStorage.setItem('auth_token', response.token);
-      localStorage.setItem('refresh_token', response.refreshToken);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN, response.token);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Registration failed');
@@ -49,11 +57,11 @@ export const refreshTokenAsync = createAsyncThunk(
         throw new Error('No refresh token available');
       }
       const response = await authApi.refreshToken(refreshToken);
-      localStorage.setItem('auth_token', response.token);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN, response.token);
       return response;
     } catch (error: any) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN);
       return rejectWithValue(error.response?.data?.message || 'Token refresh failed');
     }
   }
@@ -70,8 +78,8 @@ export const logoutAsync = createAsyncThunk(
         console.error('Logout API call failed:', error);
       }
     }
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN);
   }
 );
 

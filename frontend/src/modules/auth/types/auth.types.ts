@@ -31,7 +31,7 @@ export interface AuthToken {
 }
 
 export interface LoginCredentials {
-  email: string; // Will be converted to usernameOrEmail in API service
+  usernameOrEmail: string;
   password: string;
   rememberMe?: boolean;
 }

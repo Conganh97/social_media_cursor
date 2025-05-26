@@ -27,6 +27,9 @@ export const useUser = (userId?: number) => {
   const isUploading = useAppSelector(selectUserUploading);
   const error = useAppSelector(selectUserError);
 
+  const authUser = useAppSelector((state: any) => state.auth.user);
+  const authLoading = useAppSelector((state: any) => state.auth.isLoading);
+
   const getCurrentUser = useCallback(() => {
     return dispatch(getCurrentUserAsync());
   }, [dispatch]);
@@ -60,10 +63,10 @@ export const useUser = (userId?: number) => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (!currentUser && !isLoading) {
+    if (!currentUser && !authUser && !isLoading && !authLoading) {
       getCurrentUser();
     }
-  }, [currentUser, isLoading, getCurrentUser]);
+  }, [currentUser, authUser, isLoading, authLoading, getCurrentUser]);
 
   useEffect(() => {
     if (userId && !userProfile && !isLoading) {
@@ -72,7 +75,7 @@ export const useUser = (userId?: number) => {
   }, [userId, userProfile, isLoading, getUserProfile]);
 
   return {
-    currentUser,
+    currentUser: currentUser || authUser,
     userProfile,
     isLoading,
     isUpdating,

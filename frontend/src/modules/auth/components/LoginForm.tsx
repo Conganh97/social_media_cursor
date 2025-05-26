@@ -58,14 +58,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         margin="normal"
         required
         fullWidth
-        id="email"
-        label="Email Address"
-        name="email"
-        autoComplete="email"
+        id="usernameOrEmail"
+        label="Username or Email"
+        name="usernameOrEmail"
+        autoComplete="username email"
         autoFocus
-        type="email"
         disabled={isSubmitting}
-        {...getFieldProps('email')}
+        {...getFieldProps('usernameOrEmail')}
       />
 
       <TextField

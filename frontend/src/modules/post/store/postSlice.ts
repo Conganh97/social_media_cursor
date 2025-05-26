@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Post, PostsState, CreatePostData, UpdatePostData, PostFilters } from '../types/post.types';
 import { postApi } from '../services/postApi';
+import { likeApi } from '@/modules/social/services';
 
 const initialState: PostsState = {
   posts: [],
@@ -24,8 +25,17 @@ export const getFeedAsync = createAsyncThunk(
   async (params: { page?: number; size?: number; refresh?: boolean }, { rejectWithValue }) => {
     try {
       const response = await postApi.getFeed(params.page || 0, params.size || 10);
+      console.log('🔍 Feed Response Debug:', {
+        responseStructure: response,
+        hasContent: !!response.content,
+        contentLength: response.content?.length || 0,
+        firstPost: response.content?.[0],
+        firstPostHasUser: !!response.content?.[0]?.user,
+        firstPostUser: response.content?.[0]?.user
+      });
       return { ...response, refresh: params.refresh || false };
     } catch (error: any) {
+      console.error('❌ Failed to load feed:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to load feed');
     }
   }
@@ -36,8 +46,18 @@ export const getUserPostsAsync = createAsyncThunk(
   async (params: { userId: number; page?: number; size?: number }, { rejectWithValue }) => {
     try {
       const response = await postApi.getUserPosts(params.userId, params.page || 0, params.size || 10);
+      console.log('🔍 User Posts Response Debug:', {
+        userId: params.userId,
+        responseStructure: response,
+        hasContent: !!response.content,
+        contentLength: response.content?.length || 0,
+        firstPost: response.content?.[0],
+        firstPostHasUser: !!response.content?.[0]?.user,
+        firstPostUser: response.content?.[0]?.user
+      });
       return { ...response, userId: params.userId };
     } catch (error: any) {
+      console.error('❌ Failed to load user posts:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to load user posts');
     }
   }
@@ -59,9 +79,12 @@ export const createPostAsync = createAsyncThunk(
   'posts/createPost',
   async (postData: CreatePostData, { rejectWithValue }) => {
     try {
+      console.log('Creating post with data:', postData);
       const response = await postApi.createPost(postData);
+      console.log('Post created successfully:', response);
       return response;
     } catch (error: any) {
+      console.error('Failed to create post:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to create post');
     }
   }
@@ -95,7 +118,7 @@ export const likePostAsync = createAsyncThunk(
   'posts/likePost',
   async (postId: number, { rejectWithValue }) => {
     try {
-      const response = await postApi.likePost(postId);
+      const response = await likeApi.likePost(postId);
       return { postId, ...response };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to like post');
@@ -107,7 +130,7 @@ export const unlikePostAsync = createAsyncThunk(
   'posts/unlikePost',
   async (postId: number, { rejectWithValue }) => {
     try {
-      const response = await postApi.unlikePost(postId);
+      const response = await likeApi.unlikePost(postId);
       return { postId, ...response };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to unlike post');
@@ -140,6 +163,11 @@ const postSlice = createSlice({
     updatePostInState: (state, action: PayloadAction<Post>) => {
       const updatedPost = action.payload;
       
+      // Ensure arrays exist before updating
+      if (!state.posts) state.posts = [];
+      if (!state.feedPosts) state.feedPosts = [];
+      if (!state.userPosts) state.userPosts = {};
+      
       // Update in posts array
       const postIndex = state.posts.findIndex(p => p.id === updatedPost.id);
       if (postIndex !== -1) {
@@ -154,9 +182,11 @@ const postSlice = createSlice({
       
       // Update in user posts
       Object.keys(state.userPosts).forEach(userId => {
-        const userPostIndex = state.userPosts[Number(userId)].findIndex(p => p.id === updatedPost.id);
-        if (userPostIndex !== -1) {
-          state.userPosts[Number(userId)][userPostIndex] = updatedPost;
+        if (state.userPosts[Number(userId)]) {
+          const userPostIndex = state.userPosts[Number(userId)].findIndex(p => p.id === updatedPost.id);
+          if (userPostIndex !== -1) {
+            state.userPosts[Number(userId)][userPostIndex] = updatedPost;
+          }
         }
       });
       
@@ -168,6 +198,11 @@ const postSlice = createSlice({
     removePostFromState: (state, action: PayloadAction<number>) => {
       const postId = action.payload;
       
+      // Ensure arrays exist before removing
+      if (!state.posts) state.posts = [];
+      if (!state.feedPosts) state.feedPosts = [];
+      if (!state.userPosts) state.userPosts = {};
+      
       // Remove from posts array
       state.posts = state.posts.filter(p => p.id !== postId);
       
@@ -176,7 +211,9 @@ const postSlice = createSlice({
       
       // Remove from user posts
       Object.keys(state.userPosts).forEach(userId => {
-        state.userPosts[Number(userId)] = state.userPosts[Number(userId)].filter(p => p.id !== postId);
+        if (state.userPosts[Number(userId)]) {
+          state.userPosts[Number(userId)] = state.userPosts[Number(userId)].filter(p => p.id !== postId);
+        }
       });
       
       // Clear current post if it matches
@@ -203,16 +240,19 @@ const postSlice = createSlice({
       })
       .addCase(getFeedAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        const { posts, hasNext, refresh } = action.payload;
+        const { content, last, refresh } = action.payload;
+        
+        // Ensure feedPosts array exists
+        if (!state.feedPosts) state.feedPosts = [];
         
         if (refresh) {
-          state.feedPosts = posts;
+          state.feedPosts = content || [];
           state.feedPage = 0;
         } else {
-          state.feedPosts = [...state.feedPosts, ...posts];
+          state.feedPosts = [...state.feedPosts, ...(content || [])];
         }
         
-        state.hasMoreFeed = hasNext;
+        state.hasMoreFeed = !last;
         state.lastFeedUpdate = new Date().toISOString();
       })
       .addCase(getFeedAsync.rejected, (state, action) => {
@@ -227,8 +267,11 @@ const postSlice = createSlice({
       })
       .addCase(getUserPostsAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        const { posts, userId } = action.payload;
-        state.userPosts[userId] = posts;
+        const { content, userId } = action.payload;
+        
+        // Ensure userPosts object exists
+        if (!state.userPosts) state.userPosts = {};
+        state.userPosts[userId] = content || [];
       })
       .addCase(getUserPostsAsync.rejected, (state, action) => {
         state.isLoading = false;
@@ -257,8 +300,30 @@ const postSlice = createSlice({
       .addCase(createPostAsync.fulfilled, (state, action) => {
         state.isCreating = false;
         const newPost = action.payload;
-        state.feedPosts.unshift(newPost);
-        state.posts.unshift(newPost);
+        
+        // Validate that the post has required fields
+        if (!newPost || !newPost.id || !newPost.user) {
+          console.error('Invalid post data received:', newPost);
+          state.error = 'Invalid post data received from server';
+          return;
+        }
+        
+        // Ensure arrays exist before adding new post
+        if (!state.feedPosts) state.feedPosts = [];
+        if (!state.posts) state.posts = [];
+        
+        // Add default values for missing properties using correct field names
+        const completePost = {
+          ...newPost,
+          tags: newPost.tags || [],
+          mentions: newPost.mentions || [],
+          likeCount: newPost.likeCount || 0,
+          commentCount: newPost.commentCount || 0,
+          isLikedByCurrentUser: newPost.isLikedByCurrentUser || false,
+        };
+        
+        state.feedPosts.unshift(completePost);
+        state.posts.unshift(completePost);
       })
       .addCase(createPostAsync.rejected, (state, action) => {
         state.isCreating = false;
@@ -295,14 +360,19 @@ const postSlice = createSlice({
       
       // Like Post
       .addCase(likePostAsync.fulfilled, (state, action) => {
-        const { postId } = action.payload;
+        const { postId, liked, likeCount } = action.payload;
         
         const updateLike = (post: Post) => {
           if (post.id === postId) {
-            post.isLiked = true;
-            post.likesCount += 1;
+            post.isLikedByCurrentUser = liked;
+            post.likeCount = likeCount;
           }
         };
+        
+        // Ensure arrays exist before updating
+        if (!state.feedPosts) state.feedPosts = [];
+        if (!state.posts) state.posts = [];
+        if (!state.userPosts) state.userPosts = {};
         
         state.feedPosts.forEach(updateLike);
         state.posts.forEach(updateLike);
@@ -314,14 +384,19 @@ const postSlice = createSlice({
       
       // Unlike Post
       .addCase(unlikePostAsync.fulfilled, (state, action) => {
-        const { postId } = action.payload;
+        const { postId, unliked, likeCount } = action.payload;
         
         const updateUnlike = (post: Post) => {
           if (post.id === postId) {
-            post.isLiked = false;
-            post.likesCount = Math.max(0, post.likesCount - 1);
+            post.isLikedByCurrentUser = !unliked;
+            post.likeCount = likeCount;
           }
         };
+        
+        // Ensure arrays exist before updating
+        if (!state.feedPosts) state.feedPosts = [];
+        if (!state.posts) state.posts = [];
+        if (!state.userPosts) state.userPosts = {};
         
         state.feedPosts.forEach(updateUnlike);
         state.posts.forEach(updateUnlike);
@@ -338,7 +413,7 @@ const postSlice = createSlice({
       })
       .addCase(searchPostsAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.posts = action.payload.posts;
+        state.posts = action.payload.content || [];
       })
       .addCase(searchPostsAsync.rejected, (state, action) => {
         state.isLoading = false;
@@ -357,15 +432,15 @@ export const {
 } = postSlice.actions;
 
 // Selectors
-export const selectPosts = (state: any) => state.posts.posts;
-export const selectFeedPosts = (state: any) => state.posts.feedPosts;
-export const selectCurrentPost = (state: any) => state.posts.currentPost;
-export const selectPostsLoading = (state: any) => state.posts.isLoading;
-export const selectPostsCreating = (state: any) => state.posts.isCreating;
-export const selectPostsError = (state: any) => state.posts.error;
-export const selectHasMoreFeed = (state: any) => state.posts.hasMoreFeed;
-export const selectFeedPage = (state: any) => state.posts.feedPage;
+export const selectPosts = (state: any) => state.posts?.posts || [];
+export const selectFeedPosts = (state: any) => state.posts?.feedPosts || [];
+export const selectCurrentPost = (state: any) => state.posts?.currentPost || null;
+export const selectPostsLoading = (state: any) => state.posts?.isLoading || false;
+export const selectPostsCreating = (state: any) => state.posts?.isCreating || false;
+export const selectPostsError = (state: any) => state.posts?.error || null;
+export const selectHasMoreFeed = (state: any) => state.posts?.hasMoreFeed || false;
+export const selectFeedPage = (state: any) => state.posts?.feedPage || 0;
 export const selectUserPosts = (userId: number) => (state: any) => 
-  state.posts.userPosts[userId] || [];
+  state.posts?.userPosts?.[userId] || [];
 
 export default postSlice.reducer; 

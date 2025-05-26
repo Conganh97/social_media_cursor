@@ -5,6 +5,11 @@ import { LOCAL_STORAGE_KEYS } from '@/shared/utils';
 class HttpClient {
   private client: AxiosInstance;
   private baseURL: string;
+  private isRefreshing = false;
+  private failedQueue: Array<{
+    resolve: (value: string) => void;
+    reject: (error: any) => void;
+  }> = [];
 
   constructor() {
     this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
@@ -18,6 +23,18 @@ class HttpClient {
     });
 
     this.setupInterceptors();
+  }
+
+  private processQueue(error: any, token: string | null = null): void {
+    this.failedQueue.forEach(({ resolve, reject }) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(token!);
+      }
+    });
+    
+    this.failedQueue = [];
   }
 
   private setupInterceptors(): void {
@@ -42,25 +59,48 @@ class HttpClient {
         const originalRequest = error.config;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+          if (this.isRefreshing) {
+            return new Promise((resolve, reject) => {
+              this.failedQueue.push({ resolve, reject });
+            }).then(token => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return this.client(originalRequest);
+            }).catch(err => {
+              return Promise.reject(err);
+            });
+          }
+
           originalRequest._retry = true;
+          this.isRefreshing = true;
+
+          const refreshToken = localStorage.getItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN);
+          
+          if (!refreshToken) {
+            this.processQueue(error, null);
+            this.clearAuthTokens();
+            window.location.href = '/login';
+            return Promise.reject(error);
+          }
 
           try {
-            const refreshToken = localStorage.getItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN);
-            if (refreshToken) {
-              const response = await this.client.post('/auth/refresh', {
-                refreshToken,
-              });
+            const response = await this.client.post('/auth/refresh', {
+              refreshToken,
+            });
 
-              const { accessToken } = response.data;
-              localStorage.setItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-
-              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-              return this.client(originalRequest);
-            }
+            const { token: newToken } = response.data;
+            localStorage.setItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN, newToken);
+            
+            this.processQueue(null, newToken);
+            
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return this.client(originalRequest);
           } catch (refreshError) {
+            this.processQueue(refreshError, null);
             this.clearAuthTokens();
             window.location.href = '/login';
             return Promise.reject(refreshError);
+          } finally {
+            this.isRefreshing = false;
           }
         }
 
@@ -74,20 +114,24 @@ class HttpClient {
       return {
         message: error.response.data?.message || 'An error occurred',
         status: error.response.status,
-        timestamp: new Date().toISOString(),
-        path: error.config?.url,
+        timestamp: error.response.data?.timestamp || new Date().toISOString(),
+        path: error.response.data?.path || error.config?.url,
+        error: error.response.data?.error || 'Unknown Error',
+        correlationId: error.response.data?.correlationId,
       };
     } else if (error.request) {
       return {
         message: 'Network error - please check your connection',
         status: 0,
         timestamp: new Date().toISOString(),
+        error: 'Network Error',
       };
     } else {
       return {
         message: error.message || 'An unexpected error occurred',
         status: 0,
         timestamp: new Date().toISOString(),
+        error: 'Client Error',
       };
     }
   }

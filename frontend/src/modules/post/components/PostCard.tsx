@@ -9,8 +9,6 @@ import {
   Typography,
   Box,
   Chip,
-  ImageList,
-  ImageListItem,
   Menu,
   MenuItem,
   Dialog,
@@ -25,8 +23,6 @@ import {
   FavoriteBorder,
   Comment,
   Share,
-  BookmarkBorder,
-  Bookmark,
   MoreVert,
   LocationOn,
   Public,
@@ -65,7 +61,43 @@ export const PostCard: React.FC<PostCardProps> = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
 
-  const isOwner = currentUser?.id === post.author.id;
+  if (!post) {
+    console.warn('PostCard: Post is null or undefined');
+    return null;
+  }
+
+  if (!post.user) {
+    console.error('PostCard: Post user is missing', { postId: post.id, post });
+    return (
+      <Card sx={{ mb: 2, maxWidth: compact ? 400 : '100%' }}>
+        <CardContent>
+          <Typography color="error">
+            Error: Post data is incomplete (missing user information)
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const safePost = {
+    ...post,
+    imageUrl: post.imageUrl || '',
+    tags: post.tags || [],
+    mentions: post.mentions || [],
+    likeCount: post.likeCount || 0,
+    commentCount: post.commentCount || 0,
+    isLikedByCurrentUser: post.isLikedByCurrentUser || false,
+    location: post.location || '',
+    user: {
+      id: post.user.id || 0,
+      username: post.user.username || 'unknown',
+      firstName: post.user.firstName || 'Unknown',
+      lastName: post.user.lastName || 'User',
+      profilePictureUrl: post.user.profilePictureUrl || ''
+    }
+  };
+
+  const isOwner = currentUser?.id === safePost.user.id;
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -80,10 +112,10 @@ export const PostCard: React.FC<PostCardProps> = ({
     
     setIsLiking(true);
     try {
-      if (post.isLiked) {
-        await unlikePost(post.id);
+      if (safePost.isLikedByCurrentUser) {
+        await unlikePost(safePost.id);
       } else {
-        await likePost(post.id);
+        await likePost(safePost.id);
       }
     } catch (error) {
       console.error('Failed to toggle like:', error);
@@ -93,20 +125,20 @@ export const PostCard: React.FC<PostCardProps> = ({
   };
 
   const handleUserClick = () => {
-    if (onUserClick) {
-      onUserClick(post.author.id);
+    if (onUserClick && safePost.user.id) {
+      onUserClick(safePost.user.id);
     }
   };
 
   const handleCommentClick = () => {
     if (onCommentClick) {
-      onCommentClick(post.id);
+      onCommentClick(safePost.id);
     }
   };
 
   const handleEditClick = () => {
     if (onEditClick) {
-      onEditClick(post);
+      onEditClick(safePost);
     }
     handleMenuClose();
   };
@@ -118,7 +150,7 @@ export const PostCard: React.FC<PostCardProps> = ({
 
   const handleDeleteConfirm = async () => {
     try {
-      await deletePost(post.id);
+      await deletePost(safePost.id);
       setDeleteDialogOpen(false);
     } catch (error) {
       console.error('Failed to delete post:', error);
@@ -128,8 +160,8 @@ export const PostCard: React.FC<PostCardProps> = ({
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: `Post by ${post.author.firstName} ${post.author.lastName}`,
-        text: post.content.substring(0, 100) + '...',
+        title: `Post by ${safePost.user.firstName} ${safePost.user.lastName}`,
+        text: safePost.content.substring(0, 100) + '...',
         url: window.location.href,
       });
     } else {
@@ -138,7 +170,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   };
 
   const getVisibilityIcon = () => {
-    switch (post.visibility) {
+    switch (safePost.visibility) {
       case 'PUBLIC':
         return <Public fontSize="small" color="action" />;
       case 'FRIENDS':
@@ -164,11 +196,11 @@ export const PostCard: React.FC<PostCardProps> = ({
         <CardHeader
           avatar={
             <Avatar
-              src={post.author.profilePictureUrl}
+              src={safePost.user.profilePictureUrl}
               onClick={handleUserClick}
               sx={{ cursor: 'pointer' }}
             >
-              {post.author.firstName[0]}
+              {safePost.user.firstName[0]}
             </Avatar>
           }
           action={
@@ -185,7 +217,7 @@ export const PostCard: React.FC<PostCardProps> = ({
                 sx={{ cursor: 'pointer', fontWeight: 600 }}
                 onClick={handleUserClick}
               >
-                {post.author.firstName} {post.author.lastName}
+                {safePost.user.firstName} {safePost.user.lastName}
               </Typography>
               {getVisibilityIcon()}
             </Box>
@@ -193,15 +225,15 @@ export const PostCard: React.FC<PostCardProps> = ({
           subheader={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography variant="body2" color="textSecondary">
-                @{post.author.username}
+                @{safePost.user.username}
               </Typography>
               <Typography variant="body2" color="textSecondary">
                 •
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                {formatTimeAgo(post.createdAt)}
+                {formatTimeAgo(safePost.createdAt)}
               </Typography>
-              {post.location && (
+              {safePost.location && (
                 <>
                   <Typography variant="body2" color="textSecondary">
                     •
@@ -209,7 +241,7 @@ export const PostCard: React.FC<PostCardProps> = ({
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <LocationOn sx={{ fontSize: 16 }} color="action" />
                     <Typography variant="body2" color="textSecondary">
-                      {post.location}
+                      {safePost.location}
                     </Typography>
                   </Box>
                 </>
@@ -220,12 +252,12 @@ export const PostCard: React.FC<PostCardProps> = ({
 
         <CardContent sx={{ pt: 0 }}>
           <Typography variant="body1" paragraph>
-            {post.content}
+            {safePost.content}
           </Typography>
 
-          {post.tags && post.tags.length > 0 && (
+          {safePost.tags && safePost.tags.length > 0 && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-              {post.tags.map((tag, index) => (
+              {safePost.tags.map((tag, index) => (
                 <Chip
                   key={index}
                   label={`#${tag}`}
@@ -237,28 +269,20 @@ export const PostCard: React.FC<PostCardProps> = ({
             </Box>
           )}
 
-          {post.images && post.images.length > 0 && (
-            <ImageList
-              cols={post.images.length === 1 ? 1 : 2}
-              gap={8}
-              sx={{ mb: 2 }}
-            >
-              {post.images.map((image) => (
-                <ImageListItem key={image.id}>
-                  <img
-                    src={image.thumbnailUrl || image.url}
-                    alt={image.description || 'Post image'}
-                    loading="lazy"
-                    style={{
-                      borderRadius: 8,
-                      objectFit: 'cover',
-                      width: '100%',
-                      height: post.images.length === 1 ? 'auto' : 200,
-                    }}
-                  />
-                </ImageListItem>
-              ))}
-            </ImageList>
+          {safePost.imageUrl && (
+            <Box sx={{ mb: 2 }}>
+              <img
+                src={safePost.imageUrl}
+                alt="Post image"
+                loading="lazy"
+                style={{
+                  borderRadius: 8,
+                  objectFit: 'cover',
+                  width: '100%',
+                  maxHeight: 400,
+                }}
+              />
+            </Box>
           )}
         </CardContent>
 
@@ -269,12 +293,12 @@ export const PostCard: React.FC<PostCardProps> = ({
             <IconButton
               onClick={handleLikeToggle}
               disabled={isLiking}
-              color={post.isLiked ? 'error' : 'default'}
+              color={safePost.isLikedByCurrentUser ? 'error' : 'default'}
             >
-              {post.isLiked ? <Favorite /> : <FavoriteBorder />}
+              {safePost.isLikedByCurrentUser ? <Favorite /> : <FavoriteBorder />}
             </IconButton>
             <Typography variant="body2" color="textSecondary">
-              {post.likesCount}
+              {safePost.likeCount}
             </Typography>
           </Box>
 
@@ -283,16 +307,12 @@ export const PostCard: React.FC<PostCardProps> = ({
               <Comment />
             </IconButton>
             <Typography variant="body2" color="textSecondary">
-              {post.commentsCount}
+              {safePost.commentCount}
             </Typography>
           </Box>
 
           <IconButton onClick={handleShare}>
             <Share />
-          </IconButton>
-
-          <IconButton>
-            {post.isBookmarked ? <Bookmark /> : <BookmarkBorder />}
           </IconButton>
         </CardActions>
       </Card>

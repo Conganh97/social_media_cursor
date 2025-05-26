@@ -22,8 +22,9 @@ export interface ErrorResponse {
   status: number;
   timestamp: string;
   path?: string;
-  errors?: FieldError[];
+  error?: string;
   correlationId?: string;
+  errors?: FieldError[];
 }
 
 export interface FieldError {
@@ -45,6 +46,8 @@ export interface ApiError {
   status: number;
   timestamp: string;
   path?: string;
+  error?: string;
+  correlationId?: string;
 }
 
 export interface PaginationParams {

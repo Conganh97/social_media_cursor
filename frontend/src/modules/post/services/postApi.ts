@@ -1,4 +1,5 @@
 import { httpClient } from '@/shared/services/httpClient';
+import { likeApi } from '@/modules/social/services';
 import { 
   Post, 
   CreatePostData, 
@@ -83,46 +84,6 @@ class PostApiService {
     await httpClient.delete(`${this.baseUrl}/${postId}`);
   }
 
-  async likePost(postId: number): Promise<{ success: boolean; message: string }> {
-    const response = await httpClient.post(`/likes/${postId}`);
-    return response.data as { success: boolean; message: string };
-  }
-
-  async unlikePost(postId: number): Promise<{ success: boolean; message: string }> {
-    const response = await httpClient.delete(`/likes/${postId}`);
-    return response.data as { success: boolean; message: string };
-  }
-
-  async toggleLike(postId: number): Promise<{ liked: boolean; likeCount: number }> {
-    const response = await httpClient.post(`/likes/${postId}/toggle`);
-    return response.data as { liked: boolean; likeCount: number };
-  }
-
-  async checkIfLiked(postId: number): Promise<{ isLiked: boolean }> {
-    const response = await httpClient.get(`/likes/${postId}/status`);
-    return response.data as { isLiked: boolean };
-  }
-
-  async getPostLikes(postId: number, page: number = 0, size: number = 10): Promise<{
-    users: Array<{ id: number; username: string; firstName: string; lastName: string; profilePictureUrl?: string }>;
-    totalElements: number;
-    hasNext: boolean;
-  }> {
-    const response = await httpClient.get(`/likes/${postId}/users`, {
-      params: { page, size }
-    });
-    return response.data as {
-      users: Array<{ id: number; username: string; firstName: string; lastName: string; profilePictureUrl?: string }>;
-      totalElements: number;
-      hasNext: boolean;
-    };
-  }
-
-  async getLikeCount(postId: number): Promise<{ count: number }> {
-    const response = await httpClient.get(`/likes/count/post/${postId}`);
-    return response.data as { count: number };
-  }
-
   async searchPosts(
     query: string, 
     filters?: PostFilters, 
@@ -194,6 +155,10 @@ class PostApiService {
       params: { page, size }
     });
     return response.data as FeedResponse;
+  }
+
+  get likes() {
+    return likeApi;
   }
 }
 

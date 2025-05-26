@@ -17,6 +17,7 @@ import {
 } from '../store/authSlice';
 import { LoginCredentials, RegisterData } from '../types/auth.types';
 import { authApi } from '../services/authApi';
+import { LOCAL_STORAGE_KEYS } from '@/shared/utils/constants';
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
@@ -67,24 +68,24 @@ export const useAuth = () => {
   }, [dispatch]);
 
   const initializeAuth = useCallback(async () => {
-    const token = localStorage.getItem('auth_token');
-    if (token && !user) {
+    const token = localStorage.getItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN);
+    if (token && !user && !isLoading) {
       try {
         const currentUser = await authApi.getCurrentUser();
         dispatch(setUser(currentUser));
       } catch (error) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN);
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN);
       }
     }
-  }, [dispatch, user]);
+  }, [dispatch, user, isLoading]);
 
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN);
     if (token && !isAuthenticated && user) {
       dispatch(setUser(user));
     }

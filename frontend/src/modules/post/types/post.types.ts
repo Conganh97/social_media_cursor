@@ -18,13 +18,11 @@ export interface PostImage {
 export interface Post {
   id: number;
   content: string;
-  author: User;
-  images: PostImage[];
-  likesCount: number;
-  commentsCount: number;
-  sharesCount: number;
-  isLiked: boolean;
-  isBookmarked: boolean;
+  user: User;
+  imageUrl?: string;
+  likeCount: number;
+  commentCount: number;
+  isLikedByCurrentUser: boolean;
   createdAt: string;
   updatedAt: string;
   visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
@@ -74,10 +72,13 @@ export interface PostsState {
 }
 
 export interface FeedResponse {
-  posts: Post[];
-  hasNext: boolean;
+  content: Post[];
   totalElements: number;
-  currentPage: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
 }
 
 export interface PostInteraction {
@@ -89,7 +90,7 @@ export interface PostInteraction {
 export interface PostComment {
   id: number;
   content: string;
-  author: User;
+  user: User;
   post: { id: number };
   parentComment?: { id: number };
   replies: PostComment[];
