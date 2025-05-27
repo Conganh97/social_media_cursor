@@ -59,6 +59,14 @@ export interface LikedUsersResponse {
   last: boolean;
 }
 
+export interface UserSummaryResponse {
+  id: number;
+  username: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl?: string;
+}
+
 export interface FriendshipRequest {
   targetUserId: number;
 }
@@ -68,8 +76,8 @@ export interface FriendshipResponse {
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
   createdAt: string;
   updatedAt: string;
-  requester: User;
-  addressee: User;
+  requester: UserSummaryResponse;
+  addressee: UserSummaryResponse;
 }
 
 export type FriendshipStatus = 'NONE' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'FRIENDS';

@@ -163,6 +163,7 @@ export const socialSlice = createSlice({
       .addCase(fetchFriends.fulfilled, (state, action) => {
         state.loading = false;
         state.friends = action.payload.content;
+        state.friendCount = action.payload.content.length;
       })
       .addCase(fetchFriends.rejected, (state, action) => {
         state.loading = false;
