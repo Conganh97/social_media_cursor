@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   List,
@@ -26,6 +26,7 @@ interface ConversationListProps {
   onConversationSelect: (conversationId: string) => void;
   onSearch?: (filters: ConversationFilters) => void;
   loading?: boolean;
+  currentUserId?: string;
 }
 
 const ConversationList: React.FC<ConversationListProps> = ({
@@ -33,23 +34,30 @@ const ConversationList: React.FC<ConversationListProps> = ({
   selectedConversationId,
   onConversationSelect,
   onSearch,
-  loading = false
+  loading = false,
+  currentUserId
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<ConversationFilters>({});
+  
+  // Use ref to store the latest onSearch function to avoid dependency cycles
+  const onSearchRef = useRef(onSearch);
+  onSearchRef.current = onSearch;
+
+  // Defensive check to ensure conversations is always an array
+  const safeConversations = Array.isArray(conversations) ? conversations : [];
 
   useEffect(() => {
+    // Only trigger search if searchQuery actually changed
     const delayedSearch = setTimeout(() => {
-      const newFilters: ConversationFilters = {
-        ...filters,
+      const searchFilters: ConversationFilters = {
         search: searchQuery || undefined
       };
-      setFilters(newFilters);
-      onSearch?.(newFilters);
+      // Use ref to avoid dependency on onSearch
+      onSearchRef.current?.(searchFilters);
     }, 300);
 
     return () => clearTimeout(delayedSearch);
-  }, [searchQuery, onSearch]);
+  }, [searchQuery]); // Only depend on searchQuery to prevent infinite loops
 
   const formatLastMessageTime = (timestamp: Date) => {
     const now = new Date();
@@ -72,7 +80,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
       return conversation.groupName || 'Group Chat';
     }
     
-    const otherParticipant = conversation.participants.find(p => p.id !== 'currentUserId');
+    const otherParticipant = conversation.participants.find(p => p.id !== currentUserId);
     return otherParticipant ? `${otherParticipant.firstName} ${otherParticipant.lastName}` : 'Unknown User';
   };
 
@@ -81,16 +89,48 @@ const ConversationList: React.FC<ConversationListProps> = ({
       return conversation.groupAvatar || '';
     }
     
-    const otherParticipant = conversation.participants.find(p => p.id !== 'currentUserId');
+    const otherParticipant = conversation.participants.find(p => p.id !== currentUserId);
     return otherParticipant?.profilePictureUrl || '';
   };
 
   const isUserOnline = (conversation: Conversation) => {
     if (conversation.isGroup) return false;
     
-    const otherParticipant = conversation.participants.find(p => p.id !== 'currentUserId');
+    const otherParticipant = conversation.participants.find(p => p.id !== currentUserId);
     return otherParticipant?.isOnline || false;
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <Typography>Loading conversations...</Typography>
+      </Box>
+    );
+  }
+
+  if (!Array.isArray(conversations) || conversations.length === 0) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <TextField
+          fullWidth
+          placeholder="Search conversations..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ mb: 2 }}
+        />
+        <Typography variant="body2" color="textSecondary" textAlign="center">
+          {!Array.isArray(conversations) ? 'Error loading conversations' : 'No conversations found'}
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -118,7 +158,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
       <Divider />
 
       <List sx={{ flex: 1, overflow: 'auto', p: 0 }}>
-        {conversations.map((conversation) => (
+        {safeConversations.map((conversation) => (
           <ListItem key={conversation.id} disablePadding>
             <ListItemButton
               selected={selectedConversationId === conversation.id}
@@ -207,7 +247,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
           </ListItem>
         ))}
 
-        {conversations.length === 0 && !loading && (
+        {safeConversations.length === 0 && !loading && (
           <Box
             sx={{
               display: 'flex',

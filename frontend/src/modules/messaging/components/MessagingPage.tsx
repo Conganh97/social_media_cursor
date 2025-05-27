@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   Container,
   Paper,
@@ -32,15 +32,15 @@ const MessagingPage: React.FC = () => {
     loadConversations
   } = useMessages();
 
-  const activeConversation = conversations.find(c => c.id === activeConversationId);
+  const activeConversation = Array.isArray(conversations) ? conversations.find(c => c.id === activeConversationId) : undefined;
   const activeMessages = activeConversationId ? messages[activeConversationId] || [] : [];
   const activeTypingIndicators = activeConversationId ? typingIndicators[activeConversationId] || [] : [];
 
-  const handleConversationSelect = (conversationId: string) => {
+  const handleConversationSelect = useCallback((conversationId: string) => {
     selectConversation(conversationId);
-  };
+  }, [selectConversation]);
 
-  const handleSendMessage = (content: string, attachments?: File[]) => {
+  const handleSendMessage = useCallback((content: string, attachments?: File[]) => {
     if (activeConversationId) {
       sendMessage({
         conversationId: activeConversationId,
@@ -48,33 +48,33 @@ const MessagingPage: React.FC = () => {
         attachments
       });
     }
-  };
+  }, [activeConversationId, sendMessage]);
 
-  const handleLoadMoreMessages = () => {
+  const handleLoadMoreMessages = useCallback(() => {
     if (activeConversationId) {
       loadMoreMessages(activeConversationId);
     }
-  };
+  }, [activeConversationId, loadMoreMessages]);
 
-  const handleTypingStart = () => {
+  const handleTypingStart = useCallback(() => {
     if (activeConversationId) {
       startTyping(activeConversationId);
     }
-  };
+  }, [activeConversationId, startTyping]);
 
-  const handleTypingStop = () => {
+  const handleTypingStop = useCallback(() => {
     if (activeConversationId) {
       stopTyping(activeConversationId);
     }
-  };
+  }, [activeConversationId, stopTyping]);
 
-  const handleSearch = (filters: ConversationFilters) => {
+  const handleSearch = useCallback((filters: ConversationFilters) => {
     if (filters.search) {
       searchConversations(filters.search);
     } else {
       loadConversations(filters);
     }
-  };
+  }, [searchConversations, loadConversations]);
 
   if (isMobile) {
     return (
@@ -87,6 +87,7 @@ const MessagingPage: React.FC = () => {
               onConversationSelect={handleConversationSelect}
               onSearch={handleSearch}
               loading={loading}
+              currentUserId={currentUserId}
             />
           ) : (
             <ChatWindow
@@ -117,6 +118,7 @@ const MessagingPage: React.FC = () => {
             onConversationSelect={handleConversationSelect}
             onSearch={handleSearch}
             loading={loading}
+            currentUserId={currentUserId}
           />
         </Box>
 

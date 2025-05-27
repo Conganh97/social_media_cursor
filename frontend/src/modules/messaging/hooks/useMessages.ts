@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { 
   fetchConversations,
@@ -34,17 +34,9 @@ export const useMessages = () => {
   
   const { user } = useAppSelector(state => state.auth);
   const currentUserId = user?.id?.toString() || '';
-
-  useEffect(() => {
-    if (currentUserId) {
-      loadConversations();
-      connectWebSocket();
-    }
-
-    return () => {
-      messageWebSocketService.disconnect();
-    };
-  }, [currentUserId]);
+  
+  // Track if initial load has been done
+  const hasInitialLoadRef = useRef(false);
 
   const connectWebSocket = useCallback(async () => {
     try {
@@ -57,6 +49,21 @@ export const useMessages = () => {
   const loadConversations = useCallback((filters?: ConversationFilters) => {
     dispatch(fetchConversations(filters));
   }, [dispatch]);
+
+  useEffect(() => {
+    if (currentUserId && !hasInitialLoadRef.current) {
+      hasInitialLoadRef.current = true;
+      loadConversations();
+      connectWebSocket();
+    }
+
+    return () => {
+      if (!currentUserId) {
+        hasInitialLoadRef.current = false;
+        messageWebSocketService.disconnect();
+      }
+    };
+  }, [currentUserId, loadConversations, connectWebSocket]);
 
   const loadMessages = useCallback((conversationId: string, page: number = 0) => {
     dispatch(fetchMessages({ conversationId, page }));
@@ -101,7 +108,7 @@ export const useMessages = () => {
   }, [loadConversations]);
 
   const getConversation = useCallback((conversationId: string): Conversation | undefined => {
-    return conversations.find(c => c.id === conversationId);
+    return Array.isArray(conversations) ? conversations.find(c => c.id === conversationId) : undefined;
   }, [conversations]);
 
   const getConversationMessages = useCallback((conversationId: string): Message[] => {
@@ -117,7 +124,7 @@ export const useMessages = () => {
   }, [onlineUsers]);
 
   const getUnreadCount = useCallback((): number => {
-    return conversations.reduce((total, conversation) => total + conversation.unreadCount, 0);
+    return Array.isArray(conversations) ? conversations.reduce((total, conversation) => total + conversation.unreadCount, 0) : 0;
   }, [conversations]);
 
   const isConversationLoading = useCallback((conversationId: string): boolean => {

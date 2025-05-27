@@ -42,15 +42,15 @@ class NotificationApiService {
   }
 
   async markAsRead(notificationId: string): Promise<void> {
-    await apiService.patch(`${this.baseUrl}/${notificationId}/read`);
+    await apiService.put(`${this.baseUrl}/${notificationId}/read`);
   }
 
   async markAsUnread(notificationId: string): Promise<void> {
-    await apiService.patch(`${this.baseUrl}/${notificationId}/unread`);
+    console.warn('markAsUnread is not supported by the backend');
   }
 
   async markAllAsRead(): Promise<void> {
-    await apiService.patch(`${this.baseUrl}/mark-all-read`);
+    await apiService.put(`${this.baseUrl}/read-all`);
   }
 
   async deleteNotification(notificationId: string): Promise<void> {
@@ -58,11 +58,11 @@ class NotificationApiService {
   }
 
   async deleteAllNotifications(): Promise<void> {
-    await apiService.delete(`${this.baseUrl}/all`);
+    console.warn('deleteAllNotifications is not supported by the backend');
   }
 
-  async getUnreadCount(): Promise<{ count: number }> {
-    const response = await apiService.get<{ count: number }>(`${this.baseUrl}/unread-count`);
+  async getUnreadCount(): Promise<{ unreadCount: number }> {
+    const response = await apiService.get<{ unreadCount: number }>(`${this.baseUrl}/count/unread`);
     if (!response.data) {
       throw new Error('No data received from server');
     }
@@ -70,44 +70,40 @@ class NotificationApiService {
   }
 
   async createNotification(data: CreateNotificationData): Promise<Notification> {
-    const response = await apiService.post<Notification>(this.baseUrl, data);
-    if (!response.data) {
-      throw new Error('No data received from server');
-    }
-    return response.data;
+    console.warn('createNotification is not supported by the backend API');
+    throw new Error('Creating notifications directly is not supported');
   }
 
   async updateNotification(notificationId: string, data: UpdateNotificationData): Promise<Notification> {
-    const response = await apiService.patch<Notification>(`${this.baseUrl}/${notificationId}`, data);
-    if (!response.data) {
-      throw new Error('No data received from server');
-    }
-    return response.data;
+    console.warn('updateNotification is not supported by the backend');
+    throw new Error('Updating notifications is not supported');
   }
 
   async getSettings(): Promise<NotificationSettings> {
-    const response = await apiService.get<NotificationSettings>(`${this.baseUrl}/settings`);
-    if (!response.data) {
-      throw new Error('No data received from server');
-    }
-    return response.data;
+    console.warn('getSettings is not supported by the backend, using default settings');
+    return {
+      emailNotifications: true,
+      pushNotifications: true,
+      likes: true,
+      comments: true,
+      friendRequests: true,
+      messages: true,
+      mentions: true,
+      systemUpdates: true
+    };
   }
 
   async updateSettings(settings: Partial<NotificationSettings>): Promise<NotificationSettings> {
-    const response = await apiService.patch<NotificationSettings>(`${this.baseUrl}/settings`, settings);
-    if (!response.data) {
-      throw new Error('No data received from server');
-    }
-    return response.data;
+    console.warn('updateSettings is not supported by the backend');
+    return settings as NotificationSettings;
   }
 
   async testNotification(type: string): Promise<void> {
-    await apiService.post(`${this.baseUrl}/test`, { type });
+    await apiService.post(`${this.baseUrl}/test?type=${type}`);
   }
 
   async getNotificationsByType(type: string, filters?: NotificationFilters): Promise<PaginatedNotificationResponse> {
     const params = new URLSearchParams();
-    params.append('type', type);
     
     if (filters) {
       if (filters.isRead !== undefined) params.append('isRead', filters.isRead.toString());
@@ -117,7 +113,10 @@ class NotificationApiService {
       if (filters.offset) params.append('offset', filters.offset.toString());
     }
 
-    const response = await apiService.get<PaginatedNotificationResponse>(`${this.baseUrl}/type?${params.toString()}`);
+    const queryString = params.toString();
+    const url = queryString ? `${this.baseUrl}/type/${type}?${queryString}` : `${this.baseUrl}/type/${type}`;
+    
+    const response = await apiService.get<PaginatedNotificationResponse>(url);
     if (!response.data) {
       throw new Error('No data received from server');
     }
@@ -125,19 +124,33 @@ class NotificationApiService {
   }
 
   async bulkMarkAsRead(notificationIds: string[]): Promise<void> {
-    await apiService.patch(`${this.baseUrl}/bulk-read`, { notificationIds });
+    console.warn('bulkMarkAsRead is not supported by the backend, marking individually');
+    for (const id of notificationIds) {
+      await this.markAsRead(id);
+    }
   }
 
   async bulkDelete(notificationIds: string[]): Promise<void> {
-    await apiService.post(`${this.baseUrl}/bulk-delete`, { notificationIds });
+    console.warn('bulkDelete is not supported by the backend, deleting individually');
+    for (const id of notificationIds) {
+      await this.deleteNotification(id);
+    }
   }
 
   async subscribeToPush(subscription: PushSubscription): Promise<void> {
-    await apiService.post(`${this.baseUrl}/push-subscription`, subscription);
+    console.warn('subscribeToPush is not supported by the backend');
   }
 
   async unsubscribeFromPush(): Promise<void> {
-    await apiService.delete(`${this.baseUrl}/push-subscription`);
+    console.warn('unsubscribeFromPush is not supported by the backend');
+  }
+
+  async getSummary(): Promise<any> {
+    const response = await apiService.get(`${this.baseUrl}/summary`);
+    if (!response.data) {
+      throw new Error('No data received from server');
+    }
+    return response.data;
   }
 }
 

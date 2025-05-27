@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSocial } from '../hooks/useSocial';
 import { FriendsList } from '../components/FriendsList';
 import { FriendRequestCard } from '../components/FriendRequestCard';
+import { User } from '@/modules/user/types/user.types';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -64,7 +65,6 @@ export const FriendsPage: React.FC = () => {
     friendship.fetchFriends();
     friendship.fetchFriendRequests();
     friendship.fetchSentRequests();
-    friendship.fetchFriendCount();
   }, []);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -75,7 +75,11 @@ export const FriendsPage: React.FC = () => {
     navigate(`/messages/${friend.id}`);
   };
 
-  const handleViewProfile = (userId: number) => {
+  const handleViewProfile = (friend: User) => {
+    navigate(`/profile/${friend.id}`);
+  };
+
+  const handleViewProfileById = (userId: number) => {
     navigate(`/profile/${userId}`);
   };
 
@@ -85,7 +89,6 @@ export const FriendsPage: React.FC = () => {
       // Refresh data
       friendship.fetchFriends();
       friendship.fetchFriendRequests();
-      friendship.fetchFriendCount();
     } catch (error) {
       console.error('Failed to accept friend request:', error);
     }
@@ -110,8 +113,8 @@ export const FriendsPage: React.FC = () => {
     navigate('/people');
   };
 
-  const pendingRequestsCount = friendRequests.filter(req => req.status === 'PENDING').length;
-  const sentRequestsCount = sentRequests.filter(req => req.status === 'PENDING').length;
+  const pendingRequestsCount = (friendRequests || []).filter(req => req.status === 'PENDING').length;
+  const sentRequestsCount = (sentRequests || []).filter(req => req.status === 'PENDING').length;
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, pb: 4 }}>
@@ -164,7 +167,7 @@ export const FriendsPage: React.FC = () => {
               friends={friends}
               loading={loading}
               onMessageClick={handleMessageClick}
-              onViewProfile={(friend) => handleViewProfile(friend.id)}
+              onViewProfile={(friend) => handleViewProfile(friend)}
               onUnfriend={handleUnfriend}
               emptyMessage="You haven't added any friends yet. Start discovering people!"
             />
@@ -176,7 +179,7 @@ export const FriendsPage: React.FC = () => {
                 Friend Requests {pendingRequestsCount > 0 && `(${pendingRequestsCount})`}
               </Typography>
               
-              {friendRequests.length === 0 ? (
+              {(friendRequests || []).length === 0 ? (
                 <Box textAlign="center" py={4}>
                   <PersonAddAlt1 sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -188,14 +191,14 @@ export const FriendsPage: React.FC = () => {
                 </Box>
               ) : (
                 <Box>
-                  {friendRequests.map((request) => (
+                  {(friendRequests || []).map((request) => (
                     <FriendRequestCard
                       key={request.id}
                       request={request}
                       type="received"
                       onAccept={handleAcceptRequest}
                       onReject={handleRejectRequest}
-                      onViewProfile={handleViewProfile}
+                      onViewProfile={handleViewProfileById}
                       loading={loading}
                     />
                   ))}
@@ -210,7 +213,7 @@ export const FriendsPage: React.FC = () => {
                 Sent Requests {sentRequestsCount > 0 && `(${sentRequestsCount})`}
               </Typography>
               
-              {sentRequests.length === 0 ? (
+              {(sentRequests || []).length === 0 ? (
                 <Box textAlign="center" py={4}>
                   <PersonAdd sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -222,13 +225,13 @@ export const FriendsPage: React.FC = () => {
                 </Box>
               ) : (
                 <Box>
-                  {sentRequests.map((request) => (
+                  {(sentRequests || []).map((request) => (
                     <FriendRequestCard
                       key={request.id}
                       request={request}
                       type="sent"
                       onCancel={handleRejectRequest}
-                      onViewProfile={handleViewProfile}
+                      onViewProfile={handleViewProfileById}
                       loading={loading}
                     />
                   ))}

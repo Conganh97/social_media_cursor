@@ -87,7 +87,7 @@ export const getUnreadCount = createAsyncThunk(
   'notification/getUnreadCount',
   async () => {
     const response = await notificationApi.getUnreadCount();
-    return response.count;
+    return response.unreadCount;
   }
 );
 

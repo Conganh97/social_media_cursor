@@ -4,11 +4,11 @@ import { ENDPOINTS } from '@/shared/constants/endpoints';
 import { 
   Conversation, 
   Message, 
-  CreateMessageData, 
   UpdateMessageData,
   CreateConversationData,
   PaginatedMessages,
-  ConversationFilters
+  ConversationFilters,
+  MessageType
 } from '../types/message.types';
 
 // Updated message types to match backend
@@ -38,14 +38,73 @@ export interface MessageResponse {
   createdAt: string;
 }
 
+export interface ConversationResponse {
+  otherUser: {
+    id: number;
+    username: string;
+    firstName: string;
+    lastName: string;
+    profilePictureUrl?: string;
+  };
+  lastMessage: MessageResponse;
+  unreadCount: number;
+  lastActivity: string;
+}
+
 export const messageApi = {
   getConversations: async (filters?: ConversationFilters) => {
-    const params = new URLSearchParams();
-    if (filters?.search) params.append('search', filters.search);
-    if (filters?.unreadOnly) params.append('unreadOnly', 'true');
-    if (filters?.groupsOnly) params.append('groupsOnly', 'true');
-    
-    return apiService.get<Conversation[]>(`${ENDPOINTS.MESSAGES.CONVERSATIONS}?${params.toString()}`);
+    try {
+      const params = new URLSearchParams();
+      if (filters?.search) params.append('search', filters.search);
+      if (filters?.unreadOnly) params.append('unreadOnly', 'true');
+      if (filters?.groupsOnly) params.append('groupsOnly', 'true');
+      
+      // Backend returns Page<ConversationResponse>, so we need to access .content property
+      const response = await apiService.get<{
+        content: ConversationResponse[];
+        totalElements: number;
+        totalPages: number;
+        size: number;
+        number: number;
+      }>(`${ENDPOINTS.MESSAGES.CONVERSATIONS}?${params.toString()}`);
+      
+      // Transform backend format to frontend format
+      const conversationResponses = response.data?.content || [];
+      const conversations: Conversation[] = conversationResponses.map((conv: ConversationResponse) => ({
+        id: `${conv.otherUser.id}`,
+        participants: [
+          {
+            id: conv.otherUser.id.toString(),
+            username: conv.otherUser.username,
+            email: '',  // Backend doesn't provide email in conversation response
+            firstName: conv.otherUser.firstName,
+            lastName: conv.otherUser.lastName,
+            profilePictureUrl: conv.otherUser.profilePictureUrl,
+            isOnline: false,
+            lastSeen: new Date()
+          }
+        ],
+        lastMessage: conv.lastMessage ? {
+          id: conv.lastMessage.id.toString(),
+          content: conv.lastMessage.content,
+          senderId: conv.lastMessage.sender.id.toString(),
+          messageType: MessageType.TEXT,
+          timestamp: new Date(conv.lastMessage.createdAt),
+          isRead: conv.lastMessage.readStatus,
+          conversationId: `${conv.otherUser.id}`,
+          isEdited: false
+        } : undefined,
+        unreadCount: conv.unreadCount,
+        isGroup: false,
+        createdAt: new Date(conv.lastActivity),
+        updatedAt: new Date(conv.lastActivity)
+      }));
+      
+      return { data: conversations };
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      return { data: [] };
+    }
   },
 
   getConversationWithUser: async (otherUserId: number) => {
@@ -86,9 +145,48 @@ export const messageApi = {
   },
 
   getMessages: async (conversationId: string, page: number = 0, size: number = 20) => {
-    return apiService.get<PaginatedMessages>(
-      `/messages/conversations/${conversationId}/messages?page=${page}&size=${size}`
-    );
+    try {
+      // Use the correct backend endpoint pattern that accepts otherUserId
+      const response = await apiService.get<{
+        content: MessageResponse[];
+        totalElements: number;
+        totalPages: number;
+        size: number;
+        number: number;
+      }>(`${ENDPOINTS.MESSAGES.CONVERSATION(parseInt(conversationId))}?page=${page}&size=${size}`);
+      
+      // Transform backend format to frontend format
+      const messageResponses = response.data?.content || [];
+      const messages: Message[] = messageResponses.map((msgResp: MessageResponse) => ({
+        id: msgResp.id.toString(),
+        content: msgResp.content,
+        senderId: msgResp.sender.id.toString(),
+        messageType: MessageType.TEXT,
+        timestamp: new Date(msgResp.createdAt),
+        isRead: msgResp.readStatus,
+        conversationId: conversationId,
+        isEdited: false
+      }));
+      
+      return { 
+        data: {
+          messages,
+          hasMore: response.data ? response.data.number < response.data.totalPages - 1 : false,
+          totalElements: response.data?.totalElements || 0,
+          totalPages: response.data?.totalPages || 0
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      return { 
+        data: {
+          messages: [],
+          hasMore: false,
+          totalElements: 0,
+          totalPages: 0
+        }
+      };
+    }
   },
 
   updateMessage: async (messageId: string, data: UpdateMessageData) => {

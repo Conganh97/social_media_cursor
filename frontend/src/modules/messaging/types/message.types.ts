@@ -85,7 +85,8 @@ export interface MessageState {
 export interface PaginatedMessages {
   messages: Message[];
   hasMore: boolean;
-  totalCount: number;
+  totalElements: number;
+  totalPages: number;
 }
 
 export interface WebSocketMessage {

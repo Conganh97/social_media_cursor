@@ -8,7 +8,8 @@ import {
   UpdateMessageData,
   CreateConversationData,
   TypingIndicator,
-  ConversationFilters
+  ConversationFilters,
+  MessageType
 } from '../types/message.types';
 
 const initialState: MessageState = {
@@ -42,8 +43,30 @@ export const fetchMessages = createAsyncThunk(
 export const sendMessage = createAsyncThunk(
   'messages/sendMessage',
   async (messageData: CreateMessageData) => {
-    const response = await messageApi.sendMessage(messageData);
-    return response.data;
+    // Transform CreateMessageData to MessageRequest format
+    const messageRequest = {
+      receiverId: parseInt(messageData.conversationId), // conversationId is the receiverId for user-to-user messages
+      content: messageData.content
+    };
+    const response = await messageApi.sendMessage(messageRequest);
+    
+    if (!response.data) {
+      throw new Error('No response data received');
+    }
+    
+    // Transform MessageResponse to Message format for frontend
+    const transformedMessage: Message = {
+      id: response.data.id.toString(),
+      conversationId: messageData.conversationId,
+      senderId: response.data.sender.id.toString(),
+      content: response.data.content,
+      messageType: messageData.messageType || MessageType.TEXT,
+      timestamp: new Date(response.data.createdAt),
+      isRead: response.data.readStatus,
+      isEdited: false
+    };
+    
+    return transformedMessage;
   }
 );
 
@@ -57,9 +80,9 @@ export const updateMessage = createAsyncThunk(
 
 export const deleteMessage = createAsyncThunk(
   'messages/deleteMessage',
-  async (messageId: string) => {
+  async (messageId: number) => {
     await messageApi.deleteMessage(messageId);
-    return messageId;
+    return messageId.toString(); // Return as string for frontend consistency
   }
 );
 
@@ -241,7 +264,13 @@ export const messageSlice = createSlice({
       })
       .addCase(fetchConversations.fulfilled, (state, action) => {
         state.loading = false;
-        state.conversations = action.payload || [];
+        const conversations = action.payload;
+        if (Array.isArray(conversations)) {
+          state.conversations = conversations;
+        } else {
+          console.warn('fetchConversations returned non-array data:', conversations);
+          state.conversations = [];
+        }
       })
       .addCase(fetchConversations.rejected, (state, action) => {
         state.loading = false;

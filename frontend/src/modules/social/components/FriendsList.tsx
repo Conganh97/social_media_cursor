@@ -46,18 +46,18 @@ export const FriendsList: React.FC<FriendsListProps> = ({
   emptyMessage = "No friends found"
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredFriends, setFilteredFriends] = useState<User[]>(friends);
+  const [filteredFriends, setFilteredFriends] = useState<User[]>(friends || []);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
-      setFilteredFriends(friends);
+      setFilteredFriends(friends || []);
     } else {
-      const filtered = friends.filter(friend =>
-        friend.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        friend.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        friend.username.toLowerCase().includes(searchTerm.toLowerCase())
+      const filtered = (friends || []).filter(friend =>
+        (friend.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (friend.lastName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (friend.username || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredFriends(filtered);
     }
@@ -157,7 +157,7 @@ export const FriendsList: React.FC<FriendsListProps> = ({
                     sx={{ width: 56, height: 56, cursor: 'pointer' }}
                     onClick={() => onViewProfile?.(friend)}
                   >
-                    {friend.firstName[0]}{friend.lastName[0]}
+                    {(friend.firstName?.[0] || '') + (friend.lastName?.[0] || '')}
                   </Avatar>
                 </ListItemAvatar>
                 
